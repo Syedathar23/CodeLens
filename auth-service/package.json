@@ -1,0 +1,14 @@
+{
+  "name": "auth-service",
+  "version": "1.0.0",
+  "description": "Auth service",
+  "main": "server.js",
+  "dependencies": {
+    "express": "*",
+    "jsonwebtoken": "*",
+    "bcryptjs": "*",
+    "pg": "*",
+    "dotenv": "*",
+    "cors": "*"
+  }
+}
