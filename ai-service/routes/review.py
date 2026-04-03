@@ -10,6 +10,7 @@ from models.schemas import (
     AnnotationMessageRequest,
     SuggestionRequest,
     ContactRequest,
+    SessionCreate,
 )
 from services.gemini import (
     call_gemini,
@@ -73,19 +74,22 @@ async def create_review(req: ReviewRequest):
         score = float(ai_result.get("score", 0))
         summary = ai_result.get("summary", "")
         raw_issues = ai_result.get("issues", [])
+        improved_code = ai_result.get("improved_code")
+
+        safe_session_id = req.session_id if req.session_id and req.session_id > 0 else None
 
         # Persist review
         cursor.execute(
             """
             INSERT INTO reviews
                 (user_id, session_id, code, language, model_used, score,
-                 improvement_score, summary, version, prev_review_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 improvement_score, summary, version, prev_review_id, improved_code)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
             """,
             (
                 req.user_id,
-                req.session_id,
+                safe_session_id,
                 req.code,
                 req.language,
                 req.model_used,
@@ -94,6 +98,7 @@ async def create_review(req: ReviewRequest):
                 summary,
                 version,
                 req.prev_review_id,
+                improved_code,
             ),
         )
         review_id = cursor.fetchone()[0]
@@ -127,8 +132,10 @@ async def create_review(req: ReviewRequest):
             score=score,
             improvement_score=improvement_score,
             summary=summary,
+            improved_code=improved_code,
             issues=issue_objects,
             language=req.language,
+            code=req.code,
             model_used=req.model_used,
             version=version,
         )
@@ -149,7 +156,7 @@ async def get_reviews(user_id: int):
         cursor.execute(
             """
             SELECT id, score, improvement_score, summary, language,
-                   model_used, version, created_at
+                   model_used, version, created_at, improved_code, code
             FROM reviews
             WHERE user_id = %s
             ORDER BY created_at DESC
@@ -169,6 +176,8 @@ async def get_reviews(user_id: int):
                     "model_used": row[5],
                     "version": row[6],
                     "created_at": str(row[7]),
+                    "improved_code": row[8],
+                    "code": row[9],
                 }
             )
         return reviews
@@ -186,7 +195,7 @@ async def get_session_reviews(session_id: int):
         cursor.execute(
             """
             SELECT id, score, improvement_score, summary, language,
-                   model_used, version, created_at
+                   model_used, version, created_at, improved_code, code
             FROM reviews
             WHERE session_id = %s
             ORDER BY created_at ASC
@@ -216,6 +225,8 @@ async def get_session_reviews(session_id: int):
                     "model_used": row[5],
                     "version": row[6],
                     "created_at": str(row[7]),
+                    "improved_code": row[8],
+                    "code": row[9],
                     "issues": issues,
                 }
             )
@@ -231,32 +242,32 @@ async def get_session_reviews(session_id: int):
 # ---------------------------------------------------------------------------
 
 @router.post("/sessions", status_code=201)
-async def create_session(user_id: int, title: str = "New Session"):
+async def create_session(data: SessionCreate):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO review_sessions (user_id, title)
-            VALUES (%s, %s)
-            RETURNING id, user_id, title, created_at
+            INSERT INTO review_sessions (user_id, session_name, language)
+            VALUES (%s, %s, %s)
+            RETURNING id, user_id, session_name, language, created_at
             """,
-            (user_id, title),
+            (data.user_id, f"{data.language} Review", data.language),
         )
         row = cursor.fetchone()
         conn.commit()
         return {
             "id": row[0],
             "user_id": row[1],
-            "title": row[2],
-            "created_at": str(row[3]),
+            "session_name": row[2],
+            "language": row[3],
+            "created_at": str(row[4]),
         }
     except Exception as e:
         conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
-
 
 # ---------------------------------------------------------------------------
 # Annotations

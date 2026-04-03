@@ -22,8 +22,10 @@ class ReviewResponse(BaseModel):
     score: float
     improvement_score: Optional[float] = None
     summary: str
+    improved_code: Optional[str] = None
     issues: List[IssueItem]
     language: str
+    code: str
     model_used: str
     version: int
 
@@ -55,3 +57,8 @@ class ContactRequest(BaseModel):
     email: str
     subject: str
     message: str
+
+class SessionCreate(BaseModel):
+    user_id: int
+    language: str
+    session_name: Optional[str] = None  # auto-generated if not sent

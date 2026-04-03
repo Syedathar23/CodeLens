@@ -70,14 +70,14 @@ export async function getUserReviews(userId) {
   return res.data
 }
 // Dashboard
-export async function getStats() {
-  const { data } = await api.get('/reviews/stats')
-  return data // expects { totalReviews, averageScore, totalIssues }
+export async function getStats(userId) {
+  const res = await aiAPI.get(`/dashboard/${userId}`)
+  return res.data
 }
- 
-export async function getRecentReviews() {
-  const { data } = await api.get('/reviews/recent')
-  return data // expects [{ id, fileName, createdAt, score, status }]
+
+export async function getRecentReviews(userId) {
+  const res = await aiAPI.get(`/reviews/${userId}`)
+  return res.data
 }
 
 // ─── Annotations ──────────────────────────────────────────────────────────────
@@ -87,8 +87,8 @@ export async function saveAnnotation(reviewId, userId, selectedText, start, end,
     review_id: reviewId,
     user_id: userId,
     selected_text: selectedText,
-    start,
-    end,
+    position_start: start,   
+    position_end: end, 
     chat_type: chatType,
   })
   return res.data

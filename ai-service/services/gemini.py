@@ -33,7 +33,10 @@ async def call_gemini(code: str, language: str) -> dict:
     """Send a single-version review prompt to Gemini and return parsed JSON."""
     try:
         prompt = build_review_prompt(code, language)
-        response = model.generate_content(prompt)
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(temperature=0.2)
+        )
         raw = _strip_markdown(response.text)
         return json.loads(raw)
     except Exception as e:
@@ -49,7 +52,10 @@ async def call_gemini_diff(
     """Send a diff-based review prompt to Gemini and return parsed JSON."""
     try:
         prompt = build_diff_prompt(old_code, new_code, language, prev_issues)
-        response = model.generate_content(prompt)
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(temperature=0.2)
+        )
         raw = _strip_markdown(response.text)
         return json.loads(raw)
     except Exception as e:

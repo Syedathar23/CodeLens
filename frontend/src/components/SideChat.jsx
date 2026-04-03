@@ -1,206 +1,156 @@
-import { useState, useRef, useEffect } from 'react'
-import { sendAnnotationMessage } from '../services/api'
+import { useState, useEffect, useRef } from 'react'
+import axios from 'axios'
 
 export default function SideChat({
   isOpen,
-  selectedText = '',
-  annotationId,
-  messages: initialMessages = [],
   onClose,
-  onSaveBookmark,
+  selectedText,
+  annotationId,
+  reviewId
 }) {
-  const [messages, setMessages] = useState(initialMessages)
-  const [input, setInput] = useState('')
+  const [collapsed, setCollapsed] = useState(false)
+  const [messages, setMessages] = useState([])
+  const [inputMsg, setInputMsg] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [currentAnnId, setCurrentAnnId] = useState(annotationId)
+
   const messagesEndRef = useRef(null)
-
-  // Sync messages when parent changes
+  
   useEffect(() => {
-    setMessages(initialMessages)
-  }, [initialMessages])
+    setCurrentAnnId(annotationId)
+  }, [annotationId])
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, collapsed, isOpen])
+
+  // If newly opened with text, prompt AI
+  useEffect(() => {
+    if (isOpen && selectedText && !currentAnnId && messages.length === 0) {
+      setMessages([
+        { role: 'system', content: `Selected: "${selectedText}"\nWhat would you like to know about this?` }
+      ])
+    }
+  }, [isOpen, selectedText, currentAnnId])
 
   async function handleSend() {
-    const text = input.trim()
-    if (!text || isSending) return
-
-    const userId = localStorage.getItem('userId')
-    const userMsg = { role: 'user', content: text }
-    setMessages((prev) => [...prev, userMsg])
-    setInput('')
+    if (!inputMsg.trim() || !isOpen) return
     setIsSending(true)
+    const textMsg = inputMsg
+    
+    setMessages(prev => [...prev, { role: 'user', content: textMsg }])
+    setInputMsg('')
 
     try {
-      const res = await sendAnnotationMessage(annotationId, userId, text)
-      const aiMsg = { role: 'assistant', content: res?.response || res?.message || '...' }
-      setMessages((prev) => [...prev, aiMsg])
+      let annId = currentAnnId
+      // Create annotation mapping if it doesn't exist
+      if (!annId && reviewId) {
+        const annRes = await axios.post('http://localhost:8000/annotations', {
+          review_id: reviewId,
+          user_id: parseInt(localStorage.getItem('userId'), 10) || 1,
+          selected_text: selectedText,
+          position_start: 0,
+          position_end: 0,
+          chat_type: 'side'
+        })
+        annId = annRes.data.id
+        setCurrentAnnId(annId)
+      }
+
+      if (annId) {
+        const res = await axios.post(`http://localhost:8000/annotations/${annId}/messages`, {
+          annotation_id: annId,
+          user_id: parseInt(localStorage.getItem('userId'), 10) || 1,
+          message: textMsg
+        })
+        setMessages(prev => [...prev, { role: 'ai', content: res.data.ai_message.content }])
+      } else {
+        // Fallback for visual mock
+        setTimeout(() => {
+          setMessages(prev => [...prev, { role: 'ai', content: "I see your snippet. Need to connect real review id." }])
+        }, 1000)
+      }
     } catch (err) {
-      console.error('Side chat send error', err)
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Failed to get response.' }])
+      setMessages(prev => [...prev, { role: 'system', content: "Failed to connect to the architect." }])
     } finally {
       setIsSending(false)
     }
   }
 
-  function handleKeyDown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
-
-  // Render inline code and code blocks in AI messages
-  function renderAIContent(content) {
-    const codeBlockRegex = /```([\s\S]*?)```/g
-    const inlineCodeRegex = /`([^`]+)`/g
-
-    const parts = []
-    let last = 0
-    let match
-
-    // We'll do a simple line-by-line approach
-    const lines = content.split('\n')
-    let inBlock = false
-    let blockLines = []
-    let key = 0
-
-    for (const line of lines) {
-      if (line.startsWith('```')) {
-        if (!inBlock) {
-          inBlock = true
-          blockLines = []
-        } else {
-          inBlock = false
-          parts.push(
-            <pre key={key++} className="bg-surface-container-lowest p-2 mt-2 rounded font-mono-code text-[11px] overflow-x-auto">
-              {blockLines.join('\n')}
-            </pre>
-          )
-          blockLines = []
-        }
-        continue
-      }
-      if (inBlock) {
-        blockLines.push(line)
-        continue
-      }
-      // Inline code
-      const segments = []
-      let lastIdx = 0
-      let m
-      const re = /`([^`]+)`/g
-      while ((m = re.exec(line)) !== null) {
-        if (m.index > lastIdx) segments.push(line.slice(lastIdx, m.index))
-        segments.push(
-          <code key={key++} className="font-mono-code bg-surface-container-lowest px-1 rounded text-primary text-[10px]">
-            {m[1]}
-          </code>
-        )
-        lastIdx = m.index + m[0].length
-      }
-      if (lastIdx < line.length) segments.push(line.slice(lastIdx))
-      parts.push(<p key={key++} className="leading-5">{segments}</p>)
-    }
-
-    return parts
-  }
-
   if (!isOpen) return null
 
+  if (collapsed) {
+    return (
+      <div 
+        className="fixed top-1/2 right-0 -translate-y-1/2 w-8 h-24 bg-surface-container-high border-y border-l border-outline-variant/30 rounded-l-lg cursor-pointer flex items-center justify-center shadow-2xl hover:bg-surface-container-highest transition-colors z-50 overflow-hidden"
+        onClick={() => setCollapsed(false)}
+      >
+        <span className="material-symbols-outlined text-on-surface-variant text-sm transform -rotate-90">unfold_more</span>
+      </div>
+    )
+  }
+
   return (
-    <div className="fixed right-0 top-14 bottom-0 w-[340px] bg-surface-container-low border-l border-outline-variant/20 flex flex-col z-30">
+    <div className="fixed top-14 bottom-0 right-0 w-[340px] bg-surface-container-lowest border-l border-outline-variant/20 flex flex-col shadow-2xl z-40 transform transition-transform duration-300">
+      
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-outline-variant/10">
-        <div>
-          <p className="text-sm font-bold text-on-surface">Side chat</p>
-          <p className="text-[10px] text-secondary mt-0.5">LLaMA 3 via Groq · fast</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onSaveBookmark}
-            className="text-[10px] text-primary hover:underline"
-          >
-            save as bookmark
-          </button>
-          <button
-            onClick={onClose}
-            className="text-on-surface-variant hover:text-white"
-          >
-            <span className="material-symbols-outlined text-base">close</span>
-          </button>
-        </div>
+      <div className="h-12 border-b border-outline-variant/20 flex items-center justify-between px-4 bg-surface-container shrink-0">
+         <div className="flex items-center gap-2">
+           <span className="material-symbols-outlined text-secondary text-sm">chat_bubble</span>
+           <h3 className="font-bold text-xs uppercase tracking-widest text-on-surface">Thread</h3>
+         </div>
+         <div className="flex items-center gap-1">
+           <button onClick={() => setCollapsed(true)} className="w-6 h-6 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant">
+             <span className="material-symbols-outlined text-sm">last_page</span>
+           </button>
+           <button onClick={onClose} className="w-6 h-6 rounded hover:bg-surface-container-high flex items-center justify-center text-error">
+             <span className="material-symbols-outlined text-sm">close</span>
+           </button>
+         </div>
       </div>
 
-      {/* Context box */}
-      {selectedText && (
-        <div className="mx-4 mt-3 p-2 bg-surface-container-lowest rounded border border-outline-variant/20">
-          <p className="text-[11px] text-on-surface-variant italic">
-            Selected: &ldquo;{selectedText}&rdquo;
-          </p>
-        </div>
-      )}
-
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        {messages.length === 0 && (
-          <p className="text-[11px] text-on-surface-variant text-center mt-4 opacity-50">
-            Ask anything about the selected text…
-          </p>
-        )}
-        {messages.map((msg, idx) =>
-          msg.role === 'assistant' ? (
-            <div key={idx} className="flex flex-col gap-1">
-              <span className="text-[9px] font-bold text-secondary tracking-widest uppercase">
-                CodeLens AI
-              </span>
-              <div className="bg-surface-container p-3 rounded-lg border border-outline-variant/10 text-xs text-on-surface leading-5">
-                {renderAIContent(msg.content)}
-              </div>
-            </div>
-          ) : (
-            <div key={idx} className="flex justify-end">
-              <div className="bg-primary text-on-primary p-3 rounded-lg text-xs font-medium max-w-[90%]">
-                {msg.content}
-              </div>
-            </div>
-          )
-        )}
-        {isSending && (
-          <div className="flex flex-col gap-1">
-            <span className="text-[9px] font-bold text-secondary tracking-widest uppercase">
-              CodeLens AI
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+        {messages.map((m, i) => (
+          <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <span className="text-[9px] text-on-surface-variant mb-1 uppercase tracking-widest px-1">
+              {m.role === 'ai' ? 'Architect' : m.role === 'user' ? 'You' : 'System'}
             </span>
-            <div className="bg-surface-container p-3 rounded-lg border border-outline-variant/10 text-xs text-on-surface-variant animate-pulse">
-              Thinking…
+            <div className={`p-3 rounded-xl max-w-[90%] leading-5 whitespace-pre-wrap ${
+              m.role === 'user' ? 'bg-surface-container-high border border-outline-variant/20 text-on-surface' :
+              m.role === 'system' ? 'bg-primary/5 border border-primary/20 text-primary/80 font-mono-code text-[11px]' :
+              'bg-transparent border border-secondary/20 glow-secondary text-on-surface'
+            }`}>
+              {m.content}
             </div>
           </div>
-        )}
+        ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="border-t border-outline-variant/10 p-4">
+      <div className="p-4 bg-surface-container-low border-t border-outline-variant/20">
         <div className="relative">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about this selection…"
-            className="w-full bg-surface-container-lowest border border-outline-variant/20 focus:outline-none focus:ring-1 focus:ring-primary rounded-lg py-2 px-3 pr-12 text-xs text-on-surface placeholder:text-on-surface-variant"
+          <textarea
+            value={inputMsg}
+            onChange={e => setInputMsg(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+            }}
+            placeholder="Ask about this code..."
+            className="w-full bg-surface-container-highest border border-outline-variant/20 rounded-lg pl-3 pr-10 py-2.5 text-xs text-on-surface focus:border-primary focus:outline-none resize-none"
+            rows={2}
           />
-          <button
+          <button 
             onClick={handleSend}
-            disabled={isSending}
-            className="absolute right-1 top-1 gradient-primary rounded px-2 py-1 text-on-primary"
+            disabled={isSending || !inputMsg.trim()}
+            className="absolute right-2 bottom-2 w-7 h-7 flex items-center justify-center rounded-md bg-primary text-on-primary disabled:opacity-50 transition-opacity"
           >
-            <span className="material-symbols-outlined text-sm">send</span>
+            <span className="material-symbols-outlined text-[14px]">send</span>
           </button>
         </div>
       </div>
+
     </div>
   )
 }
