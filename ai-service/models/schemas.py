@@ -62,3 +62,8 @@ class SessionCreate(BaseModel):
     user_id: int
     language: str
     session_name: Optional[str] = None  # auto-generated if not sent
+
+
+class ChatRequest(BaseModel):
+    message: str
+    user_id: Optional[int] = None

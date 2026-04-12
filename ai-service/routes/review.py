@@ -11,11 +11,13 @@ from models.schemas import (
     SuggestionRequest,
     ContactRequest,
     SessionCreate,
+    ChatRequest,
 )
 from services.gemini import (
     call_gemini,
     call_gemini_diff,
     call_gemini_annotation,
+    call_llama_sidechat,
     update_skill_profile,
 )
 from core.database import get_connection
@@ -75,6 +77,12 @@ async def create_review(req: ReviewRequest):
         summary = ai_result.get("summary", "")
         raw_issues = ai_result.get("issues", [])
         improved_code = ai_result.get("improved_code")
+        
+        detected_language = ai_result.get("detected_language")
+        if detected_language and detected_language.lower() != "auto":
+            req.language = detected_language
+        elif req.language == "auto":
+            req.language = "Unknown"
 
         safe_session_id = req.session_id if req.session_id and req.session_id > 0 else None
 
@@ -155,20 +163,39 @@ async def get_reviews(user_id: int):
         cursor = conn.cursor()
         cursor.execute(
             """
-            SELECT id, score, improvement_score, summary, language,
-                   model_used, version, created_at, improved_code, code
-            FROM reviews
-            WHERE user_id = %s
-            ORDER BY created_at DESC
+            SELECT r.id, r.score, r.improvement_score, r.summary, r.language,
+                   r.model_used, r.version, r.created_at, r.improved_code, r.code,
+                   rs.id, rs.session_name, rs.created_at as session_date,
+                   LEFT(r.code, 60) as code_preview
+            FROM reviews r
+            LEFT JOIN review_sessions rs ON r.session_id = rs.id
+            WHERE r.user_id = %s
+            ORDER BY r.created_at DESC
             """,
             (user_id,),
         )
         rows = cursor.fetchall()
-        reviews = []
+        
+        sessions_map = {}
         for row in rows:
-            reviews.append(
+            r_id = row[0]
+            sess_id = row[10] or r_id
+            
+            if sess_id not in sessions_map:
+                sessions_map[sess_id] = {
+                    "id": sess_id,
+                    "session_id": sess_id,
+                    "session_name": row[11] or f"Session {sess_id}",
+                    "language": row[4],
+                    "created_at": str(row[12] if row[12] else row[7]),
+                    "code_preview": row[13],
+                    "score": row[1],
+                    "reviews": []
+                }
+            
+            sessions_map[sess_id]["reviews"].append(
                 {
-                    "id": row[0],
+                    "id": r_id,
                     "score": row[1],
                     "improvement_score": row[2],
                     "summary": row[3],
@@ -180,7 +207,8 @@ async def get_reviews(user_id: int):
                     "code": row[9],
                 }
             )
-        return reviews
+        
+        return list(sessions_map.values())
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
@@ -270,6 +298,36 @@ async def create_session(data: SessionCreate):
         conn.close()
 
 # ---------------------------------------------------------------------------
+# General Chat
+# ---------------------------------------------------------------------------
+
+@router.post("/chat")
+async def general_chat(body: ChatRequest):
+    try:
+        import google.generativeai as genai
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
+
+        prompt = f"""You are CodeLens AI, an expert programming 
+assistant. Answer helpfully and concisely.
+If the question involves code, provide clean working examples.
+Question: {body.message}"""
+
+        response = model.generate_content(prompt)
+        return {"response": response.text}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ---------------------------------------------------------------------------
 # Annotations
 # ---------------------------------------------------------------------------
 
@@ -343,7 +401,12 @@ async def add_annotation_message(annotation_id: int, req: AnnotationMessageReque
         user_msg = cursor.fetchone()
 
         # Get AI reply
-        ai_text = await call_gemini_annotation(selected_text, req.message)
+        try:
+            # Try Groq first
+            ai_text = await call_llama_sidechat(selected_text or "", req.message)
+        except Exception:
+            # Fall back to Gemini if Groq fails
+            ai_text = await call_gemini_annotation(selected_text or "", req.message)
 
         # Save AI message
         cursor.execute(
@@ -358,18 +421,8 @@ async def add_annotation_message(annotation_id: int, req: AnnotationMessageReque
 
         conn.commit()
         return {
-            "user_message": {
-                "id": user_msg[0],
-                "role": user_msg[1],
-                "content": user_msg[2],
-                "created_at": str(user_msg[3]),
-            },
-            "ai_message": {
-                "id": ai_msg[0],
-                "role": ai_msg[1],
-                "content": ai_msg[2],
-                "created_at": str(ai_msg[3]),
-            },
+            "ai_response": ai_text,
+            "annotation_id": annotation_id
         }
     except HTTPException:
         raise
@@ -445,58 +498,141 @@ async def get_profile(user_id: int):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
+
+        # Average score overall (from reviews table)
+        cursor.execute(
+            "SELECT AVG(score), COUNT(*) FROM reviews WHERE user_id = %s",
+            (user_id,),
+        )
+        row = cursor.fetchone()
+        avg_score_raw = row[0]
+        total_reviews = row[1] or 0
+        avg_score = round(float(avg_score_raw), 2) if avg_score_raw else 0.0
+
+        # Skill level
+        if avg_score < 4:
+            overall_level = "Beginner"
+        elif avg_score < 6:
+            overall_level = "Intermediate"
+        elif avg_score < 8:
+            overall_level = "Advanced"
+        else:
+            overall_level = "Expert"
+
+        # XP from skill_profiles
+        cursor.execute(
+            "SELECT COALESCE(SUM(xp_points), 0) FROM skill_profiles WHERE user_id = %s",
+            (user_id,),
+        )
+        total_xp = cursor.fetchone()[0] or 0
+        xp_to_next = max(1000, (int(total_xp / 1000) + 1) * 1000)
+
+        # Bugs caught
         cursor.execute(
             """
-            SELECT id, language, avg_score, total_reviews,
-                   xp_points, skill_level, updated_at
-            FROM skill_profiles
-            WHERE user_id = %s
+            SELECT COUNT(*) FROM review_issues ri
+            JOIN reviews r ON ri.review_id = r.id
+            WHERE r.user_id = %s AND ri.type = 'bug'
             """,
             (user_id,),
         )
-        rows = cursor.fetchall()
+        bugs_caught = cursor.fetchone()[0] or 0
 
-        skills = []
-        total_xp = 0
-        all_scores = []
+        # Current streak
+        cursor.execute(
+            """
+            SELECT DISTINCT DATE(created_at) AS review_date
+            FROM reviews
+            WHERE user_id = %s
+            ORDER BY review_date DESC
+            """,
+            (user_id,),
+        )
+        dates = [r[0] for r in cursor.fetchall()]
+        streak = 0
+        if dates:
+            from datetime import date, timedelta
+            today = date.today()
+            expected = today
+            for d in dates:
+                if d == expected:
+                    streak += 1
+                    expected -= timedelta(days=1)
+                else:
+                    break
 
-        for row in rows:
-            skills.append(
-                {
-                    "id": row[0],
-                    "language": row[1],
-                    "avg_score": row[2],
-                    "total_reviews": row[3],
-                    "xp_points": row[4],
-                    "skill_level": row[5],
-                    "updated_at": str(row[6]),
-                }
+        # Member since (from users table in auth service — fall back to first review)
+        member_since = ""
+        try:
+            cursor.execute(
+                "SELECT created_at FROM reviews WHERE user_id = %s ORDER BY created_at ASC LIMIT 1",
+                (user_id,),
             )
-            total_xp += row[4] or 0
-            if row[2] is not None:
-                all_scores.append(row[2])
+            ms_row = cursor.fetchone()
+            if ms_row:
+                import calendar
+                dt = ms_row[0]
+                member_since = f"Member since {calendar.month_name[dt.month]} {dt.year}"
+        except Exception:
+            pass
 
-        overall_avg = sum(all_scores) / len(all_scores) if all_scores else 0
-        if overall_avg < 4:
-            overall_level = "beginner"
-        elif overall_avg < 6:
-            overall_level = "intermediate"
-        elif overall_avg < 8:
-            overall_level = "advanced"
-        else:
-            overall_level = "expert"
+        # Language profiles from skill_profiles
+        cursor.execute(
+            """
+            SELECT language, skill_level, total_reviews, avg_score, xp_points
+            FROM skill_profiles
+            WHERE user_id = %s
+            ORDER BY total_reviews DESC
+            """,
+            (user_id,),
+        )
+        language_profiles = [
+            {
+                "language": r[0],
+                "skill_level": r[1],
+                "total_reviews": r[2],
+                "avg_score": round(float(r[3]), 2) if r[3] else 0.0,
+                "xp_points": r[4] or 0,
+            }
+            for r in cursor.fetchall()
+        ]
+
+        # Score history (daily averages)
+        cursor.execute(
+            """
+            SELECT DATE(created_at) as date, AVG(score) as score
+            FROM reviews
+            WHERE user_id = %s
+            GROUP BY DATE(created_at)
+            ORDER BY date ASC
+            """,
+            (user_id,),
+        )
+        score_history = [
+            {
+                "date": str(r[0]),
+                "score": round(float(r[1]), 2) if r[1] else 0.0,
+            }
+            for r in cursor.fetchall()
+        ]
 
         return {
-            "user_id": user_id,
-            "skills": skills,
-            "total_xp": total_xp,
             "overall_level": overall_level,
-            "overall_avg_score": round(overall_avg, 2),
+            "total_xp": int(total_xp),
+            "xp_to_next": xp_to_next,
+            "total_reviews": total_reviews,
+            "avg_score": avg_score,
+            "bugs_caught": bugs_caught,
+            "current_streak": streak,
+            "member_since": member_since,
+            "language_profiles": language_profiles,
+            "score_history": score_history,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         conn.close()
+
 
 
 # ---------------------------------------------------------------------------
@@ -509,12 +645,16 @@ async def get_dashboard(user_id: int):
     try:
         cursor = conn.cursor()
 
-        # Total reviews
+        # Reviews today
         cursor.execute(
-            "SELECT COUNT(*) FROM reviews WHERE user_id = %s",
+            """
+            SELECT COUNT(*) FROM reviews
+            WHERE user_id = %s
+              AND DATE(created_at) = CURRENT_DATE
+            """,
             (user_id,),
         )
-        total_reviews = cursor.fetchone()[0]
+        reviews_today = cursor.fetchone()[0]
 
         # Average score
         cursor.execute(
@@ -524,39 +664,40 @@ async def get_dashboard(user_id: int):
         avg_score_raw = cursor.fetchone()[0]
         avg_score = round(float(avg_score_raw), 2) if avg_score_raw else 0.0
 
-        # Reviews this week
+        # Score improvement (last score minus first score)
         cursor.execute(
             """
-            SELECT COUNT(*) FROM reviews
+            SELECT score FROM reviews
             WHERE user_id = %s
-              AND created_at >= NOW() - INTERVAL '7 days'
-            """,
-            (user_id,),
-        )
-        reviews_this_week = cursor.fetchone()[0]
-
-        # Most used language
-        cursor.execute(
-            """
-            SELECT language, COUNT(*) AS cnt
-            FROM reviews
-            WHERE user_id = %s
-            GROUP BY language
-            ORDER BY cnt DESC
+            ORDER BY created_at ASC
             LIMIT 1
             """,
             (user_id,),
         )
-        lang_row = cursor.fetchone()
-        most_used_language = lang_row[0] if lang_row else None
-
-        # Recent 5 reviews
+        first_row = cursor.fetchone()
         cursor.execute(
             """
-            SELECT id, score, summary, language, model_used, version, created_at
-            FROM reviews
+            SELECT score FROM reviews
             WHERE user_id = %s
             ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (user_id,),
+        )
+        last_row = cursor.fetchone()
+        improvement = 0.0
+        if first_row and last_row:
+            improvement = round(float(last_row[0]) - float(first_row[0]), 1)
+
+        # Recent 5 reviews with issues_count
+        cursor.execute(
+            """
+            SELECT r.id, r.score, r.summary, r.language, r.model_used,
+                   r.version, r.created_at,
+                   (SELECT COUNT(*) FROM review_issues ri WHERE ri.review_id = r.id) as issues_count
+            FROM reviews r
+            WHERE r.user_id = %s
+            ORDER BY r.created_at DESC
             LIMIT 5
             """,
             (user_id,),
@@ -570,8 +711,29 @@ async def get_dashboard(user_id: int):
                 "model_used": r[4],
                 "version": r[5],
                 "created_at": str(r[6]),
+                "issues_count": r[7] or 0,
             }
             for r in cursor.fetchall()
+        ]
+
+        # Language stats
+        cursor.execute(
+            """
+            SELECT language, COUNT(*) as count, AVG(score) as avg_score
+            FROM reviews
+            WHERE user_id = %s
+            GROUP BY language
+            ORDER BY count DESC
+            """,
+            (user_id,),
+        )
+        language_stats = [
+            {
+                "language": row[0],
+                "count": row[1],
+                "avg_score": round(float(row[2]), 2) if row[2] else 0.0,
+            }
+            for row in cursor.fetchall()
         ]
 
         # Current streak (consecutive days with at least one review)
@@ -585,11 +747,9 @@ async def get_dashboard(user_id: int):
             (user_id,),
         )
         dates = [row[0] for row in cursor.fetchall()]
-
         streak = 0
         if dates:
             from datetime import date, timedelta
-
             today = date.today()
             expected = today
             for d in dates:
@@ -600,12 +760,12 @@ async def get_dashboard(user_id: int):
                     break
 
         return {
-            "total_reviews": total_reviews,
+            "reviews_today": reviews_today,
             "avg_score": avg_score,
-            "reviews_this_week": reviews_this_week,
-            "most_used_language": most_used_language,
-            "recent_reviews": recent_reviews,
+            "improvement": improvement,
             "current_streak": streak,
+            "recent_reviews": recent_reviews,
+            "language_stats": language_stats,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

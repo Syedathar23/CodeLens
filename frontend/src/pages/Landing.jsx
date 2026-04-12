@@ -11,7 +11,7 @@ export default function Landing() {
       <main className="flex-1 flex flex-col items-center justify-center px-4 py-20 text-center max-w-5xl mx-auto w-full">
         {/* Hero */}
         <h1 className="text-5xl md:text-7xl font-headline font-bold mb-6 text-on-surface tracking-tight">
-          Your AI-powered <br/><span className="text-primary">code mentor</span>
+          Your AI-powered <br/><span className="text-[#dfe74e]">code mentor</span>
         </h1>
         <p className="text-xl text-on-surface-variant mb-12 max-w-2xl">
           Monolithic Intelligence that reviews your code, suggests real-time edits, and helps you grow as a developer with deep insights.
@@ -20,7 +20,7 @@ export default function Landing() {
         <div className="flex gap-4 mb-24">
           <button 
             onClick={() => navigate('/signup')} 
-            className="gradient-primary text-on-primary text-base font-bold px-8 py-3 rounded-lg hover:opacity-90 transition-opacity"
+            className="bg-[#10A37F] text-black text-base font-bold px-8 py-3 rounded-lg hover:opacity-90 transition-opacity"
           >
             Start for free
           </button>
@@ -40,8 +40,8 @@ export default function Landing() {
             { title: 'Code Diff View', icon: 'difference', desc: 'Exact line-by-line breakdown of AI suggestions.' },
             { title: 'Inline Side Chat', icon: 'chat', desc: 'Highlight code and ask follow-up questions.' }
           ].map((f) => (
-            <div key={f.title} className="bg-surface-container border border-outline-variant/20 p-6 rounded-xl text-left hover:border-primary/50 transition-colors">
-              <span className="material-symbols-outlined text-primary text-3xl mb-4 block">{f.icon}</span>
+            <div key={f.title} className="bg-surface-container border border-outline-variant/20 p-6 rounded-xl text-left hover:border-[#10A37F] transition-colors">
+              <span className="material-symbols-outlined text-white  text-4xl mb-4 block">{f.icon}</span>
               <h3 className="font-headline font-bold text-lg mb-2">{f.title}</h3>
               <p className="text-sm text-on-surface-variant">{f.desc}</p>
             </div>
@@ -57,12 +57,12 @@ export default function Landing() {
               { step: '2', title: 'Review', desc: 'Get deep AI analysis in seconds.' },
               { step: '3', title: 'Grow', desc: 'Learn from suggestions and improve.' }
             ].map((s) => (
-              <div key={s.step} className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full border-2 border-primary flex items-center justify-center text-primary font-bold text-xl mb-4">
+              <div key={s.step} className="flex flex-col items-center justify-center border-4 border-[#10A37F] rounded-full w-56 h-56 p-6 hover:shadow-lg hover:shadow-[#10A37F]/10 transition-all duration-300">
+                <div className="w-10 h-10 rounded-full bg-[#10A37F]/10 flex items-center justify-center text-[#10A37F] font-bold text-lg mb-2">
                   {s.step}
                 </div>
-                <h3 className="font-headline font-bold text-xl mb-2">{s.title}</h3>
-                <p className="text-sm text-on-surface-variant text-center max-w-[200px]">{s.desc}</p>
+                <h3 className="font-headline font-bold text-lg mb-2">{s.title}</h3>
+                <p className="text-[13px] text-on-surface-variant text-center max-w-[160px] leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>

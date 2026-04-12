@@ -3,41 +3,43 @@ import axios from 'axios'
 import Layout from '../components/Layout'
 import { useNavigate } from 'react-router-dom'
 
+const aiAPI = axios.create({ baseURL: 'http://localhost:8000' })
+
 export default function Dashboard() {
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
+  const [recentReviews, setRecentReviews] = useState([])
+  const [skillProgress, setSkillProgress] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const userName = localStorage.getItem('userName') || 'Developer'
   const userId = localStorage.getItem('userId')
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const res = await axios.get(`http://localhost:8000/dashboard/${userId}`)
-        setStats(res.data)
-      } catch (err) {
-        // Fallback to placeholder if real API isn't fully ready but avoiding error break
+    if (!userId) { setLoading(false); return }
+    setLoading(true)
+
+    aiAPI.get(`/dashboard/${userId}`)
+      .then(res => {
+        const data = res.data
         setStats({
-          reviewsToday: 4,
-          avgScore: 8.5,
-          monthlyGrowth: 12,
-          longestStreak: 15,
-          recentReviews: [
-            { id: 1, language: 'JavaScript', score: 9.2, model: 'Gemini', issues: 0, date: '2 hrs ago' },
-            { id: 2, language: 'Python', score: 7.4, model: 'LLaMA 3', issues: 2, date: '5 hrs ago' },
-            { id: 3, language: 'React', score: 5.1, model: 'Gemini', issues: 6, date: '1 day ago' },
-          ],
-          skills: [
-            { lang: 'JavaScript', level: 'Advanced', progress: 85 },
-            { lang: 'Python', level: 'Intermediate', progress: 60 },
-          ]
+          reviewsToday: data.reviews_today || 0,
+          avgScore: data.avg_score
+            ? parseFloat(data.avg_score).toFixed(1)
+            : '0',
+          monthlyGrowth: data.improvement !== undefined
+            ? (data.improvement >= 0 ? `+${parseFloat(data.improvement).toFixed(1)}` : `${parseFloat(data.improvement).toFixed(1)}`)
+            : '+0',
+          longestStreak: data.current_streak || 0
         })
-      } finally {
-        setLoading(false)
-      }
-    }
-    loadData()
+        setRecentReviews(data.recent_reviews || [])
+        setSkillProgress(data.language_stats || [])
+      })
+      .catch(err => {
+        console.error('Dashboard fetch failed:', err)
+        setError('Could not load dashboard data.')
+      })
+      .finally(() => setLoading(false))
   }, [userId])
 
   if (loading) {
@@ -77,15 +79,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {error && <div className="text-error mb-4">{error}</div>}
+        {error && <div className="text-error mb-4 text-sm">{error}</div>}
 
         {/* 4 Stat Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Reviews Today', value: stats?.reviewsToday || 0, icon: 'code' },
-            { label: 'Avg Score Weekly', value: stats?.avgScore || 0, icon: 'star' },
-            { label: 'Monthly Growth %', value: `+${stats?.monthlyGrowth || 0}%`, icon: 'trending_up', color: 'text-secondary' },
-            { label: 'Longest Streak', value: stats?.longestStreak || 0, icon: 'bolt', color: 'text-amber-400' },
+            { label: 'Reviews Today',    value: stats?.reviewsToday ?? 0,      icon: 'code' },
+            { label: 'Avg Score',        value: stats?.avgScore ?? '0',         icon: 'star' },
+            { label: 'Score Growth',     value: `${stats?.monthlyGrowth ?? '+0'}`,  icon: 'trending_up', color: 'text-secondary' },
+            { label: 'Current Streak',   value: stats?.longestStreak ?? 0,      icon: 'bolt', color: 'text-amber-400' },
           ].map((s, i) => (
             <div key={i} className="bg-surface-container p-5 rounded-xl border border-outline-variant/20 hover:border-primary/30 transition-colors">
               <div className="flex justify-between items-start mb-2">
@@ -101,7 +103,7 @@ export default function Dashboard() {
         <div className="bg-surface-container rounded-xl border border-outline-variant/20 overflow-hidden mb-8">
           <div className="p-5 border-b border-outline-variant/20 flex justify-between items-center">
             <h2 className="font-headline font-bold text-lg">Recent Reviews</h2>
-            <button onClick={() => navigate('/review')} className="text-xs text-primary hover:underline">View all</button>
+            <button onClick={() => navigate('/review')} className="text-xs text-white hover:underline">View all</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm whitespace-nowrap">
@@ -115,29 +117,30 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10 text-xs">
-                {(stats?.recentReviews || []).map(r => {
-                  let badge = 'bg-secondary/10 text-secondary'
-                  if (r.score < 5) badge = 'bg-error/10 text-error'
-                  else if (r.score < 8) badge = 'bg-amber-500/10 text-amber-500'
-
-                  return (
-                    <tr key={r.id} className="hover:bg-surface-container-high transition-colors cursor-pointer">
-                      <td className="px-5 py-3 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-primary" />
-                        {r.language}
-                      </td>
-                      <td className="px-5 py-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${badge}`}>{r.score}</span>
-                      </td>
-                      <td className="px-5 py-3 text-on-surface-variant">{r.model}</td>
-                      <td className="px-5 py-3 font-mono-code">{r.issues} <span className="text-error">●</span></td>
-                      <td className="px-5 py-3 text-on-surface-variant">{r.date}</td>
-                    </tr>
-                  )
-                })}
+                {recentReviews.map(review => (
+                  <tr key={review.id} className="hover:bg-surface-container-high transition-colors cursor-pointer">
+                    <td className="px-5 py-3 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-primary" />
+                      {review.language}
+                    </td>
+                    <td className="px-5 py-3">
+                      <span style={{
+                        color: review.score >= 8 ? '#65f3b6'
+                             : review.score >= 5 ? '#EF9F27'
+                             : '#ff6e84',
+                        fontWeight: 700
+                      }}>
+                        {review.score}/10
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 text-on-surface-variant">{review.model_used}</td>
+                    <td className="px-5 py-3 font-mono-code">{review.issues_count || 0} <span className="text-error">●</span></td>
+                    <td className="px-5 py-3 text-on-surface-variant">{new Date(review.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
-            {(!stats?.recentReviews || stats.recentReviews.length === 0) && (
+            {recentReviews.length === 0 && (
               <div className="p-8 text-center text-on-surface-variant text-sm">No reviews yet. Get started!</div>
             )}
           </div>
@@ -145,22 +148,30 @@ export default function Dashboard() {
 
         {/* Bottom Cards Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Skill Progress */}
+          {/* Language Skill Progress */}
           <div className="bg-surface-container p-6 rounded-xl border border-outline-variant/20">
             <h3 className="font-headline font-bold text-lg mb-6">Language Skill Progress</h3>
-            <div className="space-y-5">
-              {(stats?.skills || []).map((skill, i) => (
-                <div key={i}>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="font-bold">{skill.lang}</span>
-                    <span className="text-primary">{skill.level}</span>
-                  </div>
-                  <div className="h-2 w-full bg-surface-container-lowest rounded-full overflow-hidden">
-                    <div className="h-full gradient-primary" style={{ width: `${skill.progress}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+            {skillProgress.length === 0 ? (
+              <p className="text-white text-sm">No language data yet.</p>
+            ) : (
+              <div className="space-y-5">
+                {skillProgress.map((skill, i) => {
+                  const progress = Math.min(100, Math.round(skill.avg_score * 10))
+                  const level = skill.avg_score >= 8 ? 'Advanced' : skill.avg_score >= 6 ? 'Intermediate' : 'Beginner'
+                  return (
+                    <div key={i}>
+                      <div className="flex justify-between text-xs mb-1.5">
+                        <span className="font-bold">{skill.language} <span className="text-[#10A37F] font-normal">({skill.count} reviews)</span></span>
+                        <span className="text-white">{level}</span>
+                      </div>
+                      <div className="h-2 w-full bg-surface-container-lowest rounded-full overflow-hidden">
+                        <div className="h-full bg-[#10A37F]" style={{ width: `${progress}%` }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
 
           {/* Continue where you left off */}
@@ -170,14 +181,19 @@ export default function Dashboard() {
                 <span className="material-symbols-outlined text-amber-500 text-lg">warning</span>
                 <h3 className="font-headline font-bold text-lg">Continue where you left off</h3>
               </div>
-              <p className="text-xs text-on-surface-variant mb-4">You have an unresolved security vulnerability in your last `auth.js` submission.</p>
-              <div className="bg-surface-container-lowest border border-outline-variant/20 p-3 rounded font-mono-code text-[10px] text-error-dim mb-4">
-                12: const token = req.headers.authorization; <br/>
-                <span className="text-on-surface-variant">{'// Missing Bearer token validation and sanitization'}</span>
-              </div>
+              <p className="text-xs text-on-surface-variant mb-4">
+                {recentReviews.length > 0
+                  ? `Last reviewed ${recentReviews[0].language} code — ${new Date(recentReviews[0].created_at).toLocaleDateString()}`
+                  : 'Start your first code review to track your progress here.'}
+              </p>
+              {recentReviews.length > 0 && (
+                <div className="bg-surface-container-lowest border border-outline-variant/20 p-3 rounded font-mono-code text-[10px] text-on-surface-variant/80 mb-4">
+                  Score: {recentReviews[0].score}/10 · {recentReviews[0].issues_count || 0} issues found
+                </div>
+              )}
             </div>
-            <button onClick={() => navigate('/review')} className="w-full gradient-primary py-2.5 rounded text-on-primary font-bold text-xs">
-              FIX IT NOW
+            <button onClick={() => navigate('/review')} className="w-full bg-[#10A37F] py-2.5 rounded text-black font-bold text-xs">
+              {recentReviews.length > 0 ? 'CONTINUE REVIEWING' : 'START REVIEWING'}
             </button>
           </div>
         </div>

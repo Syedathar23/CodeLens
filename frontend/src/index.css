@@ -1,8 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-.font-mono-code { font-family: 'Courier New', 'Consolas', monospace; }
+.font-mono-code { font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Courier New', monospace; }
 
 .glass-panel {
   background: rgba(44,44,44,0.6);

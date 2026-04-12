@@ -6,13 +6,14 @@ export default function SideChat({
   onClose,
   selectedText,
   annotationId,
-  reviewId
+  reviewId,
+  isEditorMode
 }) {
-  const [collapsed, setCollapsed] = useState(false)
   const [messages, setMessages] = useState([])
   const [inputMsg, setInputMsg] = useState('')
   const [isSending, setIsSending] = useState(false)
   const [currentAnnId, setCurrentAnnId] = useState(annotationId)
+  const [rightCollapsed, setRightCollapsed] = useState(false)
 
   const messagesEndRef = useRef(null)
   
@@ -22,7 +23,7 @@ export default function SideChat({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, collapsed, isOpen])
+  }, [messages, isOpen])
 
   // If newly opened with text, prompt AI
   useEffect(() => {
@@ -43,7 +44,6 @@ export default function SideChat({
 
     try {
       let annId = currentAnnId
-      // Create annotation mapping if it doesn't exist
       if (!annId && reviewId) {
         const annRes = await axios.post('http://localhost:8000/annotations', {
           review_id: reviewId,
@@ -63,12 +63,10 @@ export default function SideChat({
           user_id: parseInt(localStorage.getItem('userId'), 10) || 1,
           message: textMsg
         })
-        setMessages(prev => [...prev, { role: 'ai', content: res.data.ai_message.content }])
+        const aiMsgContent = res.data.ai_response || res.data.response || res.data.content || res.data.ai_message?.content
+        setMessages(prev => [...prev, { role: 'ai', content: aiMsgContent }])
       } else {
-        // Fallback for visual mock
-        setTimeout(() => {
-          setMessages(prev => [...prev, { role: 'ai', content: "I see your snippet. Need to connect real review id." }])
-        }, 1000)
+        setMessages(prev => [...prev, { role: 'system', content: "Failed to connect real review id." }])
       }
     } catch (err) {
       setMessages(prev => [...prev, { role: 'system', content: "Failed to connect to the architect." }])
@@ -79,74 +77,188 @@ export default function SideChat({
 
   if (!isOpen) return null
 
-  if (collapsed) {
+  // Function to render text with highlighted code spans
+  const renderMessageContent = (text) => {
+    // Basic markdown inline code parser (`code`)
+    // Simple implementation since message.content is string
+    if (!text) return null;
+    const parts = text.split(/`([^`]+)`/g)
+    return parts.map((part, i) => {
+      if (i % 2 === 1) {
+        return (
+          <code key={i} style={{
+            background: "#0E0E0E", color: "#aaa4ff",
+            padding: "2px 6px", borderRadius: 4,
+            fontFamily: "Courier New, monospace",
+            fontSize: 12
+          }}>
+            {part}
+          </code>
+        )
+      }
+      return <span key={i}>{part}</span>
+    })
+  }
+
+  if (isEditorMode && rightCollapsed) {
     return (
-      <div 
-        className="fixed top-1/2 right-0 -translate-y-1/2 w-8 h-24 bg-surface-container-high border-y border-l border-outline-variant/30 rounded-l-lg cursor-pointer flex items-center justify-center shadow-2xl hover:bg-surface-container-highest transition-colors z-50 overflow-hidden"
-        onClick={() => setCollapsed(false)}
-      >
-        <span className="material-symbols-outlined text-on-surface-variant text-sm transform -rotate-90">unfold_more</span>
+      <div style={{
+        width: 32, flexShrink: 0, height: '100%',
+        background: '#131313', borderLeft: '1px solid #333', zIndex: 10,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        fontFamily: 'Inter, sans-serif'
+      }}>
+        <button 
+          onClick={() => setRightCollapsed(false)}
+          style={{ width: '100%', padding: '14px 0', background: 'transparent', border: 'none', color: '#ffffffff', cursor: 'pointer', borderBottom: '1px solid #222' }}
+        >
+          ❮
+        </button>
+        <div style={{
+          marginTop: 20,
+          writingMode: 'vertical-rl',
+          transform: 'rotate(180deg)',
+          fontSize: 10,
+          fontWeight: 700,
+          color: '#8a8a8a',
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          whiteSpace: 'nowrap'
+        }}>
+          SIDE CHAT
+        </div>
       </div>
     )
   }
 
+  const WrapperProps = isEditorMode ? {
+    style: {
+      width: 340, flexShrink: 0, height: '100%',
+      background: '#222222', display: 'flex', flexDirection: 'column',
+      borderLeft: '1px solid #333', zIndex: 10
+    }
+  } : {
+    className: "fixed top-14 bottom-0 right-0 w-[340px] bg-surface-container-lowest border-l border-outline-variant/20 flex flex-col shadow-2xl z-40"
+  }
+
   return (
-    <div className="fixed top-14 bottom-0 right-0 w-[340px] bg-surface-container-lowest border-l border-outline-variant/20 flex flex-col shadow-2xl z-40 transform transition-transform duration-300">
+    <div {...WrapperProps}>
       
       {/* Header */}
-      <div className="h-12 border-b border-outline-variant/20 flex items-center justify-between px-4 bg-surface-container shrink-0">
-         <div className="flex items-center gap-2">
-           <span className="material-symbols-outlined text-secondary text-sm">chat_bubble</span>
-           <h3 className="font-bold text-xs uppercase tracking-widest text-on-surface">Thread</h3>
-         </div>
-         <div className="flex items-center gap-1">
-           <button onClick={() => setCollapsed(true)} className="w-6 h-6 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant">
-             <span className="material-symbols-outlined text-sm">last_page</span>
-           </button>
-           <button onClick={onClose} className="w-6 h-6 rounded hover:bg-surface-container-high flex items-center justify-center text-error">
-             <span className="material-symbols-outlined text-sm">close</span>
-           </button>
-         </div>
+      <div style={{
+        height: 48, borderBottom: '1px solid #333', display: 'flex', 
+        alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
+        flexShrink: 0, background: isEditorMode ? '#1e1c1c' : 'inherit'
+      }}>
+        <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: 1, color: '#FF8C42', textTransform: 'uppercase' }}>
+          Side Chat
+        </div>
+        {!isEditorMode && (
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#8a8a8a', cursor: 'pointer' }}>
+             <span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span>
+          </button>
+        )}
+        {isEditorMode && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 16, color: '#8a8a8a', cursor: 'pointer' }}>
+              filter_list
+            </span>
+            <button 
+              onClick={() => setRightCollapsed(true)}
+              style={{ background: 'transparent', border: 'none', color: '#ffffffff', cursor: 'pointer', padding: '0 4px', fontSize: 14 }}
+            >
+              ❯
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
+      <div className="custom-scroll" style={{ flex: 1, overflowY: 'auto', padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 16, background: '#1c1c1c' }}>
         {messages.map((m, i) => (
-          <div key={i} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-            <span className="text-[9px] text-on-surface-variant mb-1 uppercase tracking-widest px-1">
-              {m.role === 'ai' ? 'Architect' : m.role === 'user' ? 'You' : 'System'}
-            </span>
-            <div className={`p-3 rounded-xl max-w-[90%] leading-5 whitespace-pre-wrap ${
-              m.role === 'user' ? 'bg-surface-container-high border border-outline-variant/20 text-on-surface' :
-              m.role === 'system' ? 'bg-primary/5 border border-primary/20 text-primary/80 font-mono-code text-[11px]' :
-              'bg-transparent border border-secondary/20 glow-secondary text-on-surface'
-            }`}>
-              {m.content}
-            </div>
+          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+            
+            {m.role === 'ai' || m.role === 'system' ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: '#65f3b6', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center'
+                  }}>
+                    <span style={{ fontSize: 10, color: '#131313' }}>⚡</span>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#65f3b6', letterSpacing: 1 }}>
+                    SYSTEM AI
+                  </span>
+                </div>
+                <div style={{
+                  background: '#282830', borderRadius: 8, padding: '10px 14px',
+                  fontSize: 13, color: '#c0beb8', lineHeight: 1.6, maxWidth: '90%'
+                }}>
+                  {renderMessageContent(m.content)}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#8a8a8a', letterSpacing: 1 }}>
+                    YOU
+                  </span>
+                  <div style={{
+                    width: 20, height: 20, borderRadius: '50%',
+                    background: '#F5BCAE', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, color: '#000', fontWeight: 'bold'
+                  }}>
+                    SA
+                  </div>
+                </div>
+                <div style={{
+                  background: '#333333', borderRadius: 8, padding: '10px 14px',
+                  fontSize: 13, color: '#e0e0e0', lineHeight: 1.6, maxWidth: '90%'
+                }}>
+                  {renderMessageContent(m.content)}
+                </div>
+              </>
+            )}
+
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-surface-container-low border-t border-outline-variant/20">
-        <div className="relative">
+      <div style={{
+        padding: 12, background: isEditorMode ? '#1e1c1c' : '#191a1a', 
+        borderTop: '1px solid #333'
+      }}>
+        <div style={{ position: 'relative', background: '#0e0e0e', borderRadius: 8, overflow: 'hidden' }}>
           <textarea
             value={inputMsg}
             onChange={e => setInputMsg(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
             }}
-            placeholder="Ask about this code..."
-            className="w-full bg-surface-container-highest border border-outline-variant/20 rounded-lg pl-3 pr-10 py-2.5 text-xs text-on-surface focus:border-primary focus:outline-none resize-none"
-            rows={2}
+            placeholder="Reply to thread..."
+            style={{
+              width: '100%', background: 'transparent', border: 'none', 
+              padding: '12px 40px 12px 14px', fontSize: 12, color: '#e0e0e0', 
+              outline: 'none', resize: 'none', minHeight: 44
+            }}
+            rows={1}
           />
           <button 
             onClick={handleSend}
             disabled={isSending || !inputMsg.trim()}
-            className="absolute right-2 bottom-2 w-7 h-7 flex items-center justify-center rounded-md bg-primary text-on-primary disabled:opacity-50 transition-opacity"
+            style={{
+              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+              background: 'transparent', border: 'none', cursor: 'pointer',
+              color: (isSending || !inputMsg.trim()) ? '#484848' : '#65f3b6',
+              display: 'flex', alignItems: 'center', justifyContent: 'center'
+            }}
           >
-            <span className="material-symbols-outlined text-[14px]">send</span>
+            <span className="material-symbols-outlined" style={{ fontSize: 20 }}>send</span>
           </button>
         </div>
       </div>

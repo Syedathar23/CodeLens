@@ -1,53 +1,85 @@
-def build_review_prompt(code: str, language: str) -> str:
-    """Build the prompt for a standard single-version code review."""
-    return (
-        f"You are an expert code reviewer with 10 years of experience. "
-        f"Review the following {language} code and respond ONLY in this exact JSON format "
-        f"with no markdown, no backticks, just raw JSON:\n"
-        f'{{\n'
-        f'  "score": float between 0-10,\n'
-        f'  "summary": "string (2-3 sentences)",\n'
-        f'  "improved_code": "the complete improved version of the code",\n'
-        f'  "issues": [\n'
-        f'    {{\n'
-        f'      "type": "bug or suggestion or security",\n'
-        f'      "description": "string"\n'
-        f'    }}\n'
-        f'  ]\n'
-        f'}}\n'
-        f"Code to review:\n{code}"
-    )
+def build_review_prompt(code: str, language: str = "auto") -> str:
+    return f"""You are an expert code reviewer.
+
+First, automatically detect the programming language 
+of the following code.
+
+Then review it and respond ONLY with raw JSON 
+(no markdown, no backticks, no comments):
+
+{{
+  "detected_language": "<the detected language name>",
+  "score": <float 0-10>,
+  "summary": "<2-3 sentence assessment>",
+  "improved_code": "<complete clean improved code, 
+                    NO comments, NO JavaDoc>",
+  "issues": [
+    {{
+      "type": "bug|suggestion|security|performance",
+      "description": "<issue with line reference>"
+    }}
+  ]
+}}
+
+Code to review:
+{code}"""
 
 
-def build_diff_prompt(
-    old_code: str,
-    new_code: str,
-    language: str,
-    prev_issues: list,
-) -> str:
-    """Build the prompt for a diff-based review comparing two code versions."""
-    return (
-        f"You are an expert code reviewer. Compare these two versions of {language} code "
-        f"and respond ONLY in raw JSON with no markdown:\n"
-        f'{{\n'
-        f'  "score": float 0-10,\n'
-        f'  "improvement_score": float (-10 to +10),\n'
-        f'  "summary": "string",\n'
-        f'  "improved_code": "the complete improved version of the code",\n'
-        f'  "fixed_issues": ["string"],\n'
-        f'  "issues": [{{"type": "string", "description": "string"}}]\n'
-        f'}}\n'
-        f"Previous issues: {prev_issues}\n"
-        f"Old code: {old_code}\n"
-        f"New code: {new_code}"
-    )
+def build_diff_prompt(old_code: str, new_code: str, language: str, prev_issues: list) -> str:
+    prev_issues_str = "\n".join(
+        f"- [{i.get('type','?')}] {i.get('description','')}" for i in prev_issues
+    ) if prev_issues else "None"
+
+    return f"""You are an expert {language} code reviewer comparing two versions of code.
+
+Previous issues found:
+{prev_issues_str}
+
+Old version:
+```{language}
+{old_code}
+```
+
+New version:
+```{language}
+{new_code}
+```
+
+Return ONLY valid JSON, no markdown, no backticks:
+{{"score": <float 0-10>, "improvement_score": <float -10 to +10, positive means improved>, "summary": "<what changed and whether it improved>", "improved_code": "<the best possible final version with all remaining issues fixed>", "fixed_issues": ["<description of what was fixed>"], "issues": [{{"type": "<bug|suggestion|security>", "description": "<what still needs fixing>"}}]}}"""
 
 
 def build_annotation_prompt(selected_text: str, message: str) -> str:
-    """Build the prompt for answering an inline annotation question."""
-    return (
-        f"You are a helpful code review assistant.\n"
-        f"The user is asking about this specific part of a code review: '{selected_text}'\n"
-        f"Their question is: '{message}'\n"
-        f"Give a clear, concise explanation."
-    )
+    return f"""You are a helpful code review assistant. Be concise and practical.
+
+The user selected this text from a code review:
+\"\"\"{selected_text}\"\"\"
+
+Their question: {message}
+
+Give a clear, direct answer in 2-4 sentences. No fluff."""
+
+
+async def call_gemini(code: str, language: str) -> dict:
+    try:
+        prompt = build_review_prompt(code, language)
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(temperature=0.2)
+        )
+        raw = _strip_markdown(response.text)
+        result = json.loads(raw)
+
+        # Safety checks — ensure required fields exist
+        if "improved_code" not in result or not result["improved_code"]:
+            result["improved_code"] = code  # fallback to original
+        if "issues" not in result:
+            result["issues"] = []
+        if "score" not in result:
+            result["score"] = 5.0
+
+        return result
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Gemini returned invalid JSON: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gemini review failed: {str(e)}")

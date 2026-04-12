@@ -3,6 +3,7 @@ import json
 import google.generativeai as genai
 from fastapi import HTTPException
 from dotenv import load_dotenv
+import groq
 
 from core.prompts import (
     build_review_prompt,
@@ -13,6 +14,7 @@ from core.prompts import (
 load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 genai.configure(api_key=GEMINI_API_KEY)
 
 model = genai.GenerativeModel("gemini-2.5-flash")
@@ -22,11 +24,33 @@ def _strip_markdown(text: str) -> str:
     """Remove markdown code fences that Gemini sometimes wraps around JSON."""
     text = text.strip()
     if text.startswith("```"):
-        # Remove opening fence (```json or ```)
         text = text.split("\n", 1)[-1]
     if text.endswith("```"):
         text = text.rsplit("```", 1)[0]
     return text.strip()
+
+
+def remove_comments(code: str, language: str = "") -> str:
+    """Strip all comment lines and inline comments from generated code."""
+    import re
+    lines = code.split("\n")
+    clean = []
+    in_block = False
+    for line in lines:
+        stripped = line.strip()
+        if "/*" in stripped:
+            in_block = True
+        if in_block:
+            if "*/" in stripped:
+                in_block = False
+            continue
+        if stripped.startswith("//") or stripped.startswith("#"):
+            continue
+        line = re.sub(r"\s*//.*$", "", line)
+        line = re.sub(r"\s*#.*$", "", line)
+        if line.strip():
+            clean.append(line)
+    return "\n".join(clean)
 
 
 async def call_gemini(code: str, language: str) -> dict:
@@ -38,7 +62,11 @@ async def call_gemini(code: str, language: str) -> dict:
             generation_config=genai.types.GenerationConfig(temperature=0.2)
         )
         raw = _strip_markdown(response.text)
-        return json.loads(raw)
+        result = json.loads(raw)
+        result["improved_code"] = remove_comments(
+            result.get("improved_code", ""), language
+        )
+        return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gemini review failed: {str(e)}")
 
@@ -57,7 +85,11 @@ async def call_gemini_diff(
             generation_config=genai.types.GenerationConfig(temperature=0.2)
         )
         raw = _strip_markdown(response.text)
-        return json.loads(raw)
+        result = json.loads(raw)
+        result["improved_code"] = remove_comments(
+            result.get("improved_code", ""), language
+        )
+        return result
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Gemini diff review failed: {str(e)}"
@@ -74,6 +106,29 @@ async def call_gemini_annotation(selected_text: str, message: str) -> str:
         raise HTTPException(
             status_code=500, detail=f"Gemini annotation failed: {str(e)}"
         )
+
+
+async def call_llama_sidechat(selected_text: str, message: str) -> str:
+    if not GROQ_API_KEY:
+        raise Exception("GROQ_API_KEY not configured")
+    try:
+        client = groq.Groq(api_key=GROQ_API_KEY)
+        system_prompt = "You are CodeLens AI. Help the user understand or improve their code."
+        if selected_text:
+            system_prompt += f"\n\nContext block:\n```\n{selected_text}\n```"
+        
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": message}
+            ],
+            temperature=0.5,
+            max_tokens=1024,
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        raise Exception(f"Llama sidechat failed: {str(e)}")
 
 
 async def update_skill_profile(
