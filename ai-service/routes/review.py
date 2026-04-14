@@ -1,6 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 import psycopg2
+import google.generativeai as genai
+import os
+from dotenv import load_dotenv
 
 from models.schemas import (
     ReviewRequest,
@@ -33,6 +36,9 @@ def _get_conn():
     """Open a fresh connection for one request."""
     return get_connection()
 
+api_key = os.getenv("GEMINI_API_KEY")
+genai.configure(api_key=api_key)
+chat_model = genai.GenerativeModel("gemini-2.5-flash")
 
 # ---------------------------------------------------------------------------
 # Reviews
@@ -304,29 +310,16 @@ async def create_session(data: SessionCreate):
 @router.post("/chat")
 async def general_chat(body: ChatRequest):
     try:
-        import google.generativeai as genai
-        import os
-        from dotenv import load_dotenv
-        load_dotenv()
-
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
-
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
-
         prompt = f"""You are CodeLens AI, an expert programming 
 assistant. Answer helpfully and concisely.
 If the question involves code, provide clean working examples.
 Question: {body.message}"""
 
-        response = model.generate_content(prompt)
+        response = chat_model.generate_content(prompt)
         return {"response": response.text}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 # ---------------------------------------------------------------------------
 # Annotations
 # ---------------------------------------------------------------------------
