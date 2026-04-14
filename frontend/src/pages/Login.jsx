@@ -20,7 +20,7 @@ export default function Login() {
       localStorage.setItem('userId', user.id)
       localStorage.setItem('userName', user.name)
       localStorage.setItem('userEmail', user.email)
-      navigate('/review')
+      navigate('/')
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Check your credentials.')
     } finally {
@@ -33,10 +33,12 @@ export default function Login() {
       {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-surface-container-low border-r border-outline-variant/20">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 gradient-primary rounded-lg flex items-center justify-center">
-            <span className="material-symbols-outlined text-on-primary text-base">code</span>
+          <div className="w-9 h-9 bg-[#10A37F] rounded-lg flex items-center justify-center">
+            <span className="material-symbols-outlined text-black text-base">code</span>
           </div>
-          <span className="font-headline font-bold text-lg text-on-surface">CodeLens AI</span>
+          <Link to="/" className="font-headline font-semibold text-lg hover:opacity-80">
+            CodeLens AI
+        </Link>
         </div>
 
         <div>
@@ -120,7 +122,7 @@ export default function Login() {
                 <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
                   Access Key
                 </label>
-                <a href="#" className="text-[10px] text-primary hover:underline">
+                <a href="#" className="text-[10px] text-white hover:underline">
                   Forgot password?
                 </a>
               </div>
@@ -148,7 +150,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className="gradient-primary w-full py-3 rounded-lg text-on-primary text-sm font-bold tracking-wide disabled:opacity-60"
+              className="bg-[#10A37F] w-full py-3 rounded-lg text-black text-sm font-bold tracking-wide disabled:opacity-60 hover:bg-white"
             >
               {isLoading ? 'Signing in…' : 'Sign in →'}
             </button>
@@ -176,7 +178,7 @@ export default function Login() {
 
           <p className="text-center text-[11px] text-on-surface-variant mt-6">
             Don&apos;t have an account?{' '}
-            <Link to="/signup" className="text-primary hover:underline">
+            <Link to="/signup" className="text-white hover:underline">
               Create account
             </Link>
           </p>

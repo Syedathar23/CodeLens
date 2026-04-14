@@ -41,9 +41,8 @@ class AnnotationRequest(BaseModel):
 
 class AnnotationMessageRequest(BaseModel):
     annotation_id: int
-    user_id: int
-    message: str
-
+    user_id: Optional[int] = None
+    message: str    
 
 class SuggestionRequest(BaseModel):
     user_id: int

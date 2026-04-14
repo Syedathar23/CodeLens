@@ -4,11 +4,13 @@
   "description": "Auth service",
   "main": "server.js",
   "dependencies": {
+    "@supabase/ssr": "^0.10.2",
+    "@supabase/supabase-js": "^2.103.0",
+    "bcryptjs": "*",
+    "cors": "*",
+    "dotenv": "*",
     "express": "*",
     "jsonwebtoken": "*",
-    "bcryptjs": "*",
-    "pg": "*",
-    "dotenv": "*",
-    "cors": "*"
+    "pg": "*"
   }
 }

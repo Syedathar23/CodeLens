@@ -10,6 +10,7 @@ import SideChat from '../components/SideChat'
 import CodeMirror from '@uiw/react-codemirror'
 import { oneDark } from '@codemirror/theme-one-dark'
 import { getLanguageExtension } from '../components/CodePanel'
+import { Link } from 'react-router-dom'
 
 export default function Review() {
   const navigate = useNavigate()
@@ -20,7 +21,7 @@ export default function Review() {
   const userName = localStorage.getItem('userName') || 'Developer'
   const initials = userName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
   // App state
-  
+
   const userId = localStorage.getItem('userId') || 1
   const savedSessionId = localStorage.getItem('currentSessionId')
 
@@ -123,7 +124,10 @@ export default function Review() {
         return
       }
       try {
-        const res = await axios.get(`http://localhost:8000/reviews/session/${savedSessionId}`)
+        const token = localStorage.getItem("token") // or wherever you store it
+        const res = await axios.get(`http://localhost:8000/reviews/session/${savedSessionId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
         const sessionReviews = res.data
         if (sessionReviews.length > 0) {
           const loadedMessages = []
@@ -315,7 +319,9 @@ export default function Review() {
           <div className="w-8 h-8  bg-[#10A37F] rounded-md flex items-center justify-center">
             <span className="material-symbols-outlined text-black text-sm">code</span>
           </div>
-           <span className="font-bold text-sm tracking-wide text-white">CodeLens AI</span>
+           <Link to="/" className="font-headline font-semibold text-lg hover:opacity-80">
+                     CodeLens AI
+           </Link>
         </div>
         <div className="flex items-center gap-6" style={{ transform: 'translateX(20px)' }}>
             <div 
@@ -346,8 +352,8 @@ export default function Review() {
                   
                   {allSessions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center p-4 text-center">
-                      <span className="text-xs text-on-surface-variant mb-3">No chats yet</span>
-                      <button onClick={() => { setSessionId(null); setMessages([]); localStorage.removeItem('currentSessionId'); setShowChatsDropdown(false); }} className="text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-widest bg-primary text-on-primary w-full transition-colors hover:opacity-80">Start reviewing code</button>
+                      <span className="text-xs text-white mb-3">No chats yet</span>
+                      <button onClick={() => { setSessionId(null); setMessages([]); localStorage.removeItem('currentSessionId'); setShowChatsDropdown(false); }} className="text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-widest bg-primary text-white w-full transition-colors hover:opacity-80">Start reviewing code</button>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-1">
@@ -409,38 +415,20 @@ export default function Review() {
             </button>
         </div>
         <div className="flex items-center gap-5">
-            <button onClick={() => { localStorage.removeItem('currentSessionId'); localStorage.removeItem('lastReviewId'); window.location.reload(); }} style={{
-              padding: "6px 16px",
-              background: "#10A37F",
-              border: "1px solid #10A37F",
-              borderRadius: 20,
-              color: "#000000ff",
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}>
+            <button
+              onClick={() => {
+                localStorage.removeItem('currentSessionId');
+                localStorage.removeItem('lastReviewId');
+                window.location.reload();
+              }}
+              className="px-4 py-1.5 bg-[#10A37F] border border-[#10A37F] rounded-full text-black text-xs font-semibold cursor-pointer flex items-center gap-1.5">
               + New Chat
             </button>
+
             <div
               onClick={() => navigate("/profile")}
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: "50%",
-                background: "#10A37F",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 10,
-                fontWeight: 600,
-                color: "#000000ff",
-                cursor: "pointer",
-              }}
-              title="View Profile"
-            >
+              className="w-[30px] h-[30px] rounded-full bg-[#10A37F] flex items-center justify-center text-[10px] font-semibold text-black cursor-pointer"
+              title="View Profile">
               {initials}
             </div>
         </div>
@@ -614,8 +602,8 @@ export default function Review() {
             
             {messages.length === 0 && !loadingHistory && (
               <div className="max-w-2xl w-full flex flex-col items-center justify-center text-center pt-32 shrink-0">
-                <div className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mb-6 shadow-xl shadow-primary/20 glow-primary transition-all duration-700">
-                  <span className="material-symbols-outlined text-white text-3xl">psychology</span>
+                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-xl shadow-primary/20 glow-primary transition-all duration-700">
+                  <span className="material-symbols-outlined text-black text-3xl">psychology</span>
                 </div>
                 <h1 className="font-headline font-bold text-4xl mb-3 tracking-tight">Your AI-powered code mentor.</h1>
                 <p className="text-on-surface-variant max-w-lg leading-relaxed text-sm">

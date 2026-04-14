@@ -372,66 +372,60 @@ async def create_annotation(req: AnnotationRequest):
     finally:
         conn.close()
 
-
-@router.post("/annotations/{annotation_id}/messages", status_code=201)
-async def add_annotation_message(annotation_id: int, req: AnnotationMessageRequest):
-    conn = _get_conn()
+@router.post("/annotations/{annotation_id}/messages")
+async def add_annotation_message(
+    annotation_id: int,
+    body: AnnotationMessageRequest
+):
+    conn = None
     try:
+        conn = get_connection()
         cursor = conn.cursor()
-
-        # Fetch annotation context
-        cursor.execute(
-            "SELECT selected_text FROM annotations WHERE id = %s",
-            (annotation_id,),
-        )
-        ann_row = cursor.fetchone()
-        if not ann_row:
-            raise HTTPException(status_code=404, detail="Annotation not found")
-        selected_text = ann_row[0]
-
+        
         # Save user message
         cursor.execute(
-            """
-            INSERT INTO annotation_messages (annotation_id, user_id, role, content)
-            VALUES (%s, %s, 'user', %s)
-            RETURNING id, role, content, created_at
-            """,
-            (annotation_id, req.user_id, req.message),
+            """INSERT INTO annotation_messages 
+               (annotation_id, role, content) 
+               VALUES (%s, %s, %s)""",
+            (annotation_id, "user", body.message)
         )
-        user_msg = cursor.fetchone()
-
-        # Get AI reply
-        try:
-            # Try Groq first
-            ai_text = await call_llama_sidechat(selected_text or "", req.message)
-        except Exception:
-            # Fall back to Gemini if Groq fails
-            ai_text = await call_gemini_annotation(selected_text or "", req.message)
-
-        # Save AI message
+        
+        # Get the selected text for context
         cursor.execute(
-            """
-            INSERT INTO annotation_messages (annotation_id, user_id, role, content)
-            VALUES (%s, %s, 'assistant', %s)
-            RETURNING id, role, content, created_at
-            """,
-            (annotation_id, req.user_id, ai_text),
+            "SELECT selected_text FROM annotations WHERE id = %s",
+            (annotation_id,)
         )
-        ai_msg = cursor.fetchone()
-
+        row = cursor.fetchone()
+        selected_text = row[0] if row else ""
+        
+        # Call LLaMA 3 via Groq (with Gemini fallback)
+        ai_response = await call_llama_sidechat(
+            selected_text, 
+            body.message
+        )
+        
+        # Save AI response
+        cursor.execute(
+            """INSERT INTO annotation_messages 
+               (annotation_id, role, content) 
+               VALUES (%s, %s, %s)""",
+            (annotation_id, "ai", ai_response)
+        )
+        
         conn.commit()
+        
         return {
-            "ai_response": ai_text,
+            "ai_response": ai_response,
             "annotation_id": annotation_id
         }
-    except HTTPException:
-        raise
+        
     except Exception as e:
-        conn.rollback()
+        if conn:
+            conn.rollback()
         raise HTTPException(status_code=500, detail=str(e))
     finally:
-        conn.close()
-
+        if conn:
+            conn.close()
 
 @router.get("/annotations/{review_id}")
 async def get_annotations(review_id: int):

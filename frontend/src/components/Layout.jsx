@@ -1,7 +1,7 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { getRecentReviews } from '../services/api'
-
+import { Link } from 'react-router-dom'
 export default function Layout({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -48,11 +48,13 @@ export default function Layout({ children }) {
       <div className="h-[65px] bg-[#0e0e0e] px-6 flex flex-row items-center justify-between border-b border-[#222] shrink-0 z-50">
         
         {/* Left Side: Logo */}
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/dashboard')}>
+        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
           <div className="w-8 h-8 bg-[#10A37F] rounded-md flex items-center justify-center">
             <span className="material-symbols-outlined text-black text-sm">code</span>
           </div>
-          <span className="font-bold text-sm tracking-wide text-white">CodeLens AI</span>
+          <Link to="/" className="font-headline font-semibold text-lg hover:opacity-80">
+            CodeLens AI
+          </Link>
         </div>
 
         {/* Center Nav Links */}

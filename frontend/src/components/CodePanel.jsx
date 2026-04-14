@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { oneDark } from '@codemirror/theme-one-dark'
 import * as Diff from 'diff'
@@ -69,9 +69,7 @@ const lineStyles = {
 }
 
 const customTheme = EditorView.theme({
-  "&": {
-    fontFamily: "'JetBrains Mono', 'Courier New', monospace"
-  }
+  "&": { fontFamily: "'JetBrains Mono', 'Courier New', monospace" }
 })
 
 const customHighlighting = HighlightStyle.define([
@@ -103,11 +101,34 @@ export default function CodePanel({
   const [copied, setCopied] = useState(false)
   const [computedDiff, setComputedDiff] = useState([])
 
+  // ── FIX: Store previous values in refs to avoid infinite loop ──
+  const prevOriginalCode = useRef(null)
+  const prevCode = useRef(null)
+  const prevDiffLines = useRef(null)
+
   const errorLines = useMemo(() => extractErrorLines(issues), [issues])
   const bugLines   = useMemo(() => extractBugLines(issues), [issues])
 
+  // ── FIX: Only run when values actually CHANGE, not every render ──
   useEffect(() => {
-    if (originalCode && code && originalCode !== code && diffLines.length === 0) {
+    const diffLinesStr = JSON.stringify(diffLines)
+    const sameOrigin = prevOriginalCode.current === originalCode
+    const sameCode = prevCode.current === code
+    const sameDiff = prevDiffLines.current === diffLinesStr
+
+    // Skip if nothing changed
+    if (sameOrigin && sameCode && sameDiff) return
+
+    prevOriginalCode.current = originalCode
+    prevCode.current = code
+    prevDiffLines.current = diffLinesStr
+
+    if (diffLines && diffLines.length > 0) {
+      setComputedDiff(diffLines)
+      return
+    }
+
+    if (originalCode && code && originalCode !== code) {
       const diffs = Diff.diffLines(originalCode, code)
       const result = []
       diffs.forEach(part => {
@@ -116,15 +137,16 @@ export default function CodePanel({
         lines.forEach(line => result.push({ line, type }))
       })
       setComputedDiff(result)
-    } else {
-      setComputedDiff(diffLines)
+      return
     }
-  }, [originalCode, code, diffLines])
+
+    setComputedDiff([])
+  // ── FIX: NO state variables in deps — only props ──
+  }, [originalCode, code, diffLines]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const displayLines = useMemo(() => {
-    return computedDiff.length > 0
-      ? computedDiff
-      : code.split('\n').map(line => ({ line, type: 'normal' }))
+    if (computedDiff.length > 0) return computedDiff
+    return code.split('\n').map(line => ({ line, type: 'normal' }))
   }, [code, computedDiff])
 
   const codeString = useMemo(() => {
@@ -142,12 +164,9 @@ export default function CodePanel({
   const handleCopy = () => {
     const lines = code.split('\n')
     const copyableLines = diffLines && diffLines.length > 0
-      ? diffLines
-          .filter(d => d.type !== 'removed')
-          .map(d => d.line)
+      ? diffLines.filter(d => d.type !== 'removed').map(d => d.line)
       : lines
-    const textToCopy = copyableLines.join('\n')
-    navigator.clipboard.writeText(textToCopy)
+    navigator.clipboard.writeText(copyableLines.join('\n'))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -156,7 +175,8 @@ export default function CodePanel({
 
   return (
     <div className="relative flex flex-col h-full bg-[#282c34] rounded-lg overflow-hidden border border-outline-variant/20">
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
+
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-surface-container border-b border-outline-variant/20 z-10">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-on-surface tracking-widest uppercase">
@@ -171,9 +191,9 @@ export default function CodePanel({
             </span>
           )}
         </div>
-        
+
         <div className="flex items-center gap-3">
-          <button 
+          <button
             onClick={handleCopy}
             className="flex items-center gap-1.5 text-xs text-on-surface-variant hover:text-white transition-colors"
           >
@@ -182,61 +202,40 @@ export default function CodePanel({
             </span>
             <span>{copied ? 'Copied!' : 'Copy'}</span>
           </button>
-          
+
           <span className="material-symbols-outlined text-sm text-on-surface-variant">
             {isLatest ? 'lock' : 'history'}
           </span>
         </div>
       </div>
 
-      {/* ── Code Area ───────────────────────────────────────────────────────── */}
+      {/* Code Area */}
       <div className="flex-1 overflow-auto text-xs font-mono-code relative custom-cm-wrapper">
         {isDiffMode ? (
-          /* ── Right Panel: Diff View with bug-yellow support ── */
-          <div style={{ 
+          <div style={{
             fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-            fontSize: 12,
-            lineHeight: "1.6",
-            padding: "16px",
-            height: "100%",
-            overflow: "auto",
-            background: "#282c34"
+            fontSize: 12, lineHeight: "1.6",
+            padding: "16px", height: "100%",
+            overflow: "auto", background: "#282c34"
           }} className="custom-scroll">
             {computedDiff.map((d, i) => {
               const lineNum = i + 1
               let lineType = d.type
-              if (lineType === 'normal' && bugLines.includes(lineNum)) {
-                lineType = 'bug'
-              }
+              if (lineType === 'normal' && bugLines.includes(lineNum)) lineType = 'bug'
               const style = lineStyles[lineType] || lineStyles.normal
               return (
-                <div
-                  key={i}
-                  style={{
-                    display: "flex",
-                    paddingLeft: 8,
-                    paddingRight: 8,
-                    marginLeft: -8,
-                    marginRight: -8,
-                    background: style.bg,
-                    borderLeft: `2px solid ${style.border}`,
-                    textDecoration: lineType === 'removed' ? 'line-through' : 'none',
-                    opacity: lineType === 'removed' ? 0.6 : 1
-                  }}
-                >
-                  <span style={{ 
-                    color: "#484848", 
-                    minWidth: 32, 
-                    userSelect: "none",
-                    fontSize: 11
-                  }}>
+                <div key={i} style={{
+                  display: "flex", paddingLeft: 8, paddingRight: 8,
+                  marginLeft: -8, marginRight: -8,
+                  background: style.bg,
+                  borderLeft: `2px solid ${style.border}`,
+                  textDecoration: lineType === 'removed' ? 'line-through' : 'none',
+                  opacity: lineType === 'removed' ? 0.6 : 1
+                }}>
+                  <span style={{ color: "#484848", minWidth: 32, userSelect: "none", fontSize: 11 }}>
                     {lineType !== 'removed' ? lineNum : ''}
                   </span>
-                  <span style={{ 
-                    color: style.color,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-all"
-                  }}>
+                  <span style={{ color: style.color, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
                     {d.line || " "}
                   </span>
                 </div>
@@ -244,7 +243,6 @@ export default function CodePanel({
             })}
           </div>
         ) : editable ? (
-          /* ── Left Panel when editable ── */
           <CodeMirror
             value={code}
             height="100%"
@@ -259,34 +257,25 @@ export default function CodePanel({
               foldGutter: false,
               indentOnInput: true
             }}
-            className="text-[13px]"
             style={{ height: '100%' }}
           />
         ) : errorLines.length > 0 && !originalCode ? (
-          /* ── Left Panel: Custom renderer with error line highlights ── */
-          <div style={{ 
+          <div style={{
             fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-            fontSize: 12,
-            lineHeight: "1.6",
-            padding: "16px",
-            height: "100%",
-            overflow: "auto",
-            background: "#282c34"
+            fontSize: 12, lineHeight: "1.6",
+            padding: "16px", height: "100%",
+            overflow: "auto", background: "#282c34"
           }} className="custom-scroll">
             {code.split('\n').map((line, index) => {
               const lineNum = index + 1
               const isError = errorLines.includes(lineNum)
               return (
-                <div
-                  key={index}
-                  style={{
-                    display: 'flex',
-                    background: isError ? 'rgba(255,110,132,0.1)' : 'transparent',
-                    borderLeft: isError ? '2px solid #ff6e84' : '2px solid transparent',
-                    paddingLeft: 8,
-                    position: 'relative'
-                  }}
-                >
+                <div key={index} style={{
+                  display: 'flex',
+                  background: isError ? 'rgba(255,110,132,0.1)' : 'transparent',
+                  borderLeft: isError ? '2px solid #ff6e84' : '2px solid transparent',
+                  paddingLeft: 8, position: 'relative'
+                }}>
                   <span style={{ color: '#484848', minWidth: 32, userSelect: 'none', fontSize: 11 }}>
                     {lineNum}
                   </span>
@@ -300,15 +289,9 @@ export default function CodePanel({
                   </span>
                   {isError && (
                     <span style={{
-                      position: 'absolute',
-                      right: 8,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: 6,
-                      height: 6,
-                      borderRadius: '50%',
-                      background: '#ff6e84',
-                      flexShrink: 0
+                      position: 'absolute', right: 8, top: '50%',
+                      transform: 'translateY(-50%)', width: 6, height: 6,
+                      borderRadius: '50%', background: '#ff6e84', flexShrink: 0
                     }} />
                   )}
                 </div>
@@ -316,7 +299,6 @@ export default function CodePanel({
             })}
           </div>
         ) : (
-          /* ── Default CodeMirror view ── */
           <CodeMirror
             value={codeString}
             height="100%"
@@ -330,28 +312,21 @@ export default function CodePanel({
               foldGutter: false,
               indentOnInput: true
             }}
-            className="text-[13px]"
             style={{ height: '100%' }}
           />
         )}
       </div>
 
-      {/* ── Score Card (absolute bottom-right) ──────────────────────────────── */}
+      {/* Score Card */}
       {!editable && score !== undefined && (
-        <div
-          className={`absolute bottom-4 right-4 p-3 rounded-lg transition-transform hover:scale-105 cursor-default z-20 ${
-            isLatest
-              ? 'bg-surface-container-high border-2 border-secondary/50 glow-secondary shadow-xl'
-              : 'bg-surface-container-high border border-outline-variant/20 shadow-xl'
-          }`}
-        >
+        <div className={`absolute bottom-4 right-4 p-3 rounded-lg transition-transform hover:scale-105 cursor-default z-20 ${
+          isLatest
+            ? 'bg-surface-container-high border-2 border-secondary/50 shadow-xl'
+            : 'bg-surface-container-high border border-outline-variant/20 shadow-xl'
+        }`}>
           <p className="text-[9px] text-on-surface-variant uppercase tracking-widest mb-1">Score</p>
           <div className="flex items-center gap-1">
-            <span
-              className={`text-2xl font-bold font-headline ${
-                isLatest ? 'text-secondary' : 'text-amber-500'
-              }`}
-            >
+            <span className={`text-2xl font-bold font-headline ${isLatest ? 'text-secondary' : 'text-amber-500'}`}>
               {score}
             </span>
             {isLatest && (
@@ -365,16 +340,12 @@ export default function CodePanel({
           </div>
         </div>
       )}
-      
+
       <style>{`
-        .custom-cm-wrapper .cm-editor {
-          height: 100%;
-          min-height: 300px;
-        }
+        .custom-cm-wrapper .cm-editor { height: 100%; min-height: 300px; }
         .custom-cm-wrapper .cm-scroller {
           font-family: 'JetBrains Mono', 'Courier New', monospace;
           overflow: auto;
-          max-height: calc(100vh - 200px);
         }
       `}</style>
     </div>

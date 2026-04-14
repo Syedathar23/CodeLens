@@ -74,7 +74,7 @@ export default function Signup() {
       localStorage.setItem('userId', user.id)
       localStorage.setItem('userName', user.name)
       localStorage.setItem('userEmail', user.email)
-      navigate('/review')
+      navigate('/')
     } catch (err) {
       setError(err.response?.data?.message || 'Signup failed. Please try again.')
     } finally {
@@ -87,10 +87,12 @@ export default function Signup() {
       {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-surface-container-low border-r border-outline-variant/20">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 gradient-primary rounded-lg flex items-center justify-center">
-            <span className="material-symbols-outlined text-on-primary text-base">code</span>
+          <div className="w-9 h-9 bg-[#10A37F] rounded-lg flex items-center justify-center">
+            <span className="material-symbols-outlined text-black text-base">code</span>
           </div>
-          <span className="font-headline font-bold text-lg text-on-surface">CodeLens AI</span>
+          <Link to="/" className="font-headline font-semibold text-lg hover:opacity-80">
+            CodeLens AI
+        </Link>
         </div>
 
         <div>
@@ -220,18 +222,18 @@ export default function Signup() {
                 onChange={handleChange}
                 className="mt-0.5 accent-primary"
               />
-              <span className="text-[11px] text-on-surface-variant">
+              <span className="text-[11px] text-white">
                 I agree to the{' '}
-                <a href="#" className="text-primary hover:underline">Terms of Service</a>
+                <a href="#" className="text-[#10A37F] hover:underline">Terms of Service</a>
                 {' '}and{' '}
-                <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+                <a href="#" className="text-[#10A37F] hover:underline">Privacy Policy</a>
               </span>
             </label>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="gradient-primary w-full py-3 rounded-lg text-on-primary text-sm font-bold tracking-wide disabled:opacity-60"
+              className="bg-[#10A37F] w-full py-3 rounded-lg text-black text-sm font-bold tracking-wide disabled:opacity-60 hover:bg-white"
             >
               {isLoading ? 'Creating account…' : 'Create account'}
             </button>
@@ -239,7 +241,7 @@ export default function Signup() {
 
           <p className="text-center text-[11px] text-on-surface-variant mt-6">
             Already have an account?{' '}
-            <Link to="/login" className="text-primary hover:underline">Sign in</Link>
+            <Link to="/login" className="text-[#10A37F] hover:underline">Sign in</Link>
           </p>
         </div>
       </div>
