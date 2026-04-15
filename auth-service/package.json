@@ -11,6 +11,7 @@
     "dotenv": "*",
     "express": "*",
     "jsonwebtoken": "*",
+    "nodemon": "^3.1.14",
     "pg": "*"
   }
 }
