@@ -2,6 +2,19 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { signup } from '../services/api.js'
 
+const C = {
+  cream: '#F5F2EB',
+  black: '#0A0A0A',
+  yellow: '#F5B800',
+  orange: '#E8440A',
+  muted: '#4A4845',
+  border: '3px solid #0A0A0A',
+  shadow: '6px 6px 0 #0A0A0A',
+  shadowLg: '10px 10px 0 #0A0A0A',
+  font: "'Space Grotesk', sans-serif",
+  body: "'Inter', sans-serif",
+}
+
 function PasswordStrength({ password }) {
   const score = [
     password.length >= 8,
@@ -11,22 +24,35 @@ function PasswordStrength({ password }) {
   ].filter(Boolean).length
 
   const levels = ['', 'Weak', 'Fair', 'Strong', 'Excellent']
-  const colors = ['bg-outline-variant', 'bg-error', 'bg-amber-400', 'bg-primary', 'bg-secondary']
+  const colors = ['bg-cp-muted', 'text-cp-orange', 'text-cp-yellow', 'text-cp-yellow', 'text-green-600']
 
   return (
-    <div className="mt-1.5">
-      <div className="flex gap-1">
+    <div style={{ marginTop: '0.45rem' }}>
+      <div style={{ display: 'flex', gap: '0.25rem' }}>
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className={`h-1 flex-1 rounded-full transition-colors ${
-              i <= score ? colors[score] : 'bg-outline-variant/30'
-            }`}
+            style={{
+              height: 4,
+              flex: 1,
+              background: i <= score 
+                ? (score === 1 ? C.orange : score <= 3 ? C.yellow : '#16A34A') 
+                : '#D9D6CF',
+              transition: 'background-color 0.15s',
+            }}
           />
         ))}
       </div>
       {password && (
-        <p className={`text-[10px] mt-1 ${colors[score].replace('bg-', 'text-')}`}>
+        <p style={{
+          fontSize: '0.65rem',
+          fontWeight: 700,
+          marginTop: '0.25rem',
+          fontFamily: C.font,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          color: score === 1 ? C.orange : score <= 3 ? C.yellow : '#16A34A'
+        }}>
           {levels[score]}
         </p>
       )}
@@ -82,63 +108,153 @@ export default function Signup() {
     }
   }
 
+  const inputStyle = {
+    width: '100%',
+    border: '3px solid #0A0A0A',
+    background: '#FAFAF8',
+    fontFamily: C.body,
+    fontSize: '0.95rem',
+    color: C.black,
+    padding: '0.85rem 1.05rem',
+    outline: 'none',
+    boxSizing: 'border-box',
+    transition: 'box-shadow 0.15s, border-color 0.15s',
+    borderRadius: 0,
+  }
+
   return (
-    <div className="min-h-screen bg-surface flex font-body">
-      {/* ── LEFT PANEL ──────────────────────────────────────────────────── */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-surface-container-low border-r border-outline-variant/20">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 bg-[#10A37F] rounded-lg flex items-center justify-center">
-            <span className="material-symbols-outlined text-black text-base">code</span>
+    <div style={{
+      minHeight: '100vh',
+      background: C.cream,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem',
+      position: 'relative',
+      overflow: 'hidden',
+      fontFamily: C.body,
+    }}>
+
+      {/* ── Checkered background pattern ────────────────────────────── */}
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        zIndex: 0,
+        backgroundImage: `
+          repeating-conic-gradient(
+            rgba(10,10,10,0.28) 0% 25%,
+            transparent 0% 50%
+          )
+        `,
+        backgroundSize: '12px 12px',
+      }} />
+
+      {/* ── Floating decoration shapes (matching login scale) ───────── */}
+      <div style={{
+        position: 'absolute', top: '10%', left: '8%',
+        width: 150, height: 150,
+        background: C.orange, border: '4px solid #0A0A0A',
+        transform: 'rotate(-9deg)', zIndex: 1,
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '10%', right: '9%',
+        width: 170, height: 170,
+        background: C.yellow, border: '4px solid #0A0A0A',
+        transform: 'rotate(11deg)', zIndex: 1,
+      }} />
+      <div style={{
+        position: 'absolute', top: '44%', right: '23%',
+        width: 108, height: 108,
+        borderRadius: '50%',
+        background: '#fff', border: '4px solid #0A0A0A', zIndex: 1,
+      }} />
+
+      {/* ── Signup card ──────────────────────────────────────────────── */}
+      <div style={{
+        position: 'relative', zIndex: 2,
+        background: '#fff',
+        border: '4px solid #0A0A0A',
+        boxShadow: C.shadowLg,
+        width: '100%', maxWidth: 480,
+        overflow: 'hidden',
+      }}>
+
+        {/* ── Card header bar ─────────────────────────────────────────── */}
+        <div style={{
+          background: C.yellow,
+          borderBottom: '4px solid #0A0A0A',
+          padding: '0.9rem 1.1rem',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span style={{
+            fontFamily: "'bold', sans-serif",
+            fontWeight: 800,
+            fontSize: '0.95rem',
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            color: C.black,
+          }}>
+            System Registration
+          </span>
+
+          <div style={{
+            width: 18, height: 18, borderRadius: '50%',
+            border: '3px solid #0A0A0A',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+            marginRight: '-2px',
+          }}>
+            <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#0A0A0A' }} />
           </div>
-          <Link to="/" className="font-headline font-semibold text-lg hover:opacity-80">
-            CodeLens AI
-        </Link>
         </div>
 
-        <div>
-          <h1 className="font-headline font-bold text-5xl text-on-surface leading-tight mb-4">
-            CodeLens AI
-          </h1>
-          <p className="text-on-surface-variant text-lg tracking-widest uppercase mb-12">
-            Monolithic Intelligence
-          </p>
-          <div className="bg-surface-container p-4 rounded-xl border-l-4 border-primary space-y-3">
-            <p className="text-[10px] font-bold text-on-surface-variant tracking-widest uppercase mb-2">
-              Security Status
+        {/* ── Card body ───────────────────────────────────────────────── */}
+        <div style={{ padding: '2.25rem 2rem' }}>
+
+          {/* Title */}
+          <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+            <h1 style={{
+              fontFamily: "'bold', sans-serif",
+              fontWeight: 900,
+              fontSize: '2.5rem',
+              letterSpacing: '-0.04em',
+              color: C.black,
+              marginBottom: '0.5rem',
+              lineHeight: 1,
+            }}>
+              SIGNUP
+            </h1>
+            <p style={{
+              fontFamily: C.body,
+              fontSize: '0.95rem',
+              color: '#1A1A1A',
+              letterSpacing: '0.02em',
+              marginTop: '0.4rem',
+            }}>
+              Join the developer workspace
             </p>
-            {[
-              { label: 'SHA-256 ENCRYPTION', status: 'ACTIVE', active: true },
-              { label: 'OAUTH 2.1 HANDSHAKE', status: 'READY', active: true },
-              { label: 'MFA_REQUIRED_LOGIC', status: 'WAITING', active: false },
-            ].map(({ label, status, active }) => (
-              <div key={label} className="flex items-center justify-between">
-                <span className="font-mono-code text-[11px] text-on-surface-variant">{label}</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded font-mono-code ${active ? 'text-secondary' : 'text-outline'}`}>
-                  [{status}]
-                </span>
-              </div>
-            ))}
           </div>
-        </div>
 
-        <p className="text-[11px] text-on-surface-variant">© 2026 CodeLens AI. All rights reserved.</p>
-      </div>
-
-      {/* ── RIGHT PANEL ─────────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md bg-surface-container rounded-2xl p-8 border border-outline-variant/20">
-          <h2 className="font-headline font-bold text-2xl text-on-surface mb-1">Create your account</h2>
-          <p className="text-xs text-on-surface-variant mb-8">Join the obsidian development community.</p>
-
+          {/* Error */}
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-error/10 border border-error/20 text-xs text-error">{error}</div>
+            <div style={{
+              border: `2px solid ${C.orange}`,
+              background: 'rgba(232,68,10,0.08)',
+              padding: '0.65rem 0.9rem',
+              marginBottom: '1.25rem',
+              fontFamily: C.body,
+              fontSize: '0.82rem',
+              color: C.orange,
+            }}>
+              {error}
+            </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
             {/* Name row */}
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">
+                <label style={{ display: 'block', fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: C.black, marginBottom: '0.45rem' }}>
                   First Name
                 </label>
                 <input
@@ -147,11 +263,13 @@ export default function Signup() {
                   onChange={handleChange}
                   required
                   placeholder="John"
-                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-3 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  style={inputStyle}
+                  onFocus={e => { e.target.style.boxShadow = '0 0 0 3px rgba(232,68,10,0.25)'; e.target.style.borderColor = C.orange }}
+                  onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = C.black }}
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">
+                <label style={{ display: 'block', fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: C.black, marginBottom: '0.45rem' }}>
                   Last Name
                 </label>
                 <input
@@ -160,14 +278,18 @@ export default function Signup() {
                   onChange={handleChange}
                   required
                   placeholder="Doe"
-                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-3 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  style={inputStyle}
+                  onFocus={e => { e.target.style.boxShadow = '0 0 0 3px rgba(232,68,10,0.25)'; e.target.style.borderColor = C.orange }}
+                  onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = C.black }}
                 />
               </div>
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Email</label>
+              <label style={{ display: 'block', fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: C.black, marginBottom: '0.45rem' }}>
+                Email Address
+              </label>
               <input
                 name="email"
                 type="email"
@@ -175,14 +297,18 @@ export default function Signup() {
                 onChange={handleChange}
                 required
                 placeholder="you@example.com"
-                className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-3 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                style={inputStyle}
+                onFocus={e => { e.target.style.boxShadow = '0 0 0 3px rgba(232,68,10,0.25)'; e.target.style.borderColor = C.orange }}
+                onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = C.black }}
               />
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Password</label>
-              <div className="relative">
+              <label style={{ display: 'block', fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: C.black, marginBottom: '0.45rem' }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
                 <input
                   name="password"
                   type={showPw ? 'text' : 'password'}
@@ -190,10 +316,24 @@ export default function Signup() {
                   onChange={handleChange}
                   required
                   placeholder="••••••••"
-                  className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg pl-4 pr-10 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                  style={{ ...inputStyle, paddingRight: '2.75rem' }}
+                  onFocus={e => { e.target.style.boxShadow = '0 0 0 3px rgba(232,68,10,0.25)'; e.target.style.borderColor = C.orange }}
+                  onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = C.black }}
                 />
-                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-white">
-                  <span className="material-symbols-outlined text-base">{showPw ? 'visibility_off' : 'visibility'}</span>
+                <button
+                  type="button"
+                  onClick={() => setShowPw(!showPw)}
+                  style={{
+                    position: 'absolute', right: 12, top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none', border: 'none',
+                    cursor: 'pointer', color: C.muted,
+                    display: 'flex', alignItems: 'center', padding: 0,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>
+                    {showPw ? 'visibility_off' : 'visibility'}
+                  </span>
                 </button>
               </div>
               <PasswordStrength password={form.password} />
@@ -201,7 +341,9 @@ export default function Signup() {
 
             {/* Confirm Password */}
             <div>
-              <label className="block text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1.5">Confirm Password</label>
+              <label style={{ display: 'block', fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: C.black, marginBottom: '0.45rem' }}>
+                Confirm Password
+              </label>
               <input
                 name="confirmPassword"
                 type="password"
@@ -209,39 +351,84 @@ export default function Signup() {
                 onChange={handleChange}
                 required
                 placeholder="••••••••"
-                className="w-full bg-surface-container-low border border-outline-variant/20 rounded-lg px-3 py-2.5 text-xs text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                style={inputStyle}
+                onFocus={e => { e.target.style.boxShadow = '0 0 0 3px rgba(232,68,10,0.25)'; e.target.style.borderColor = C.orange }}
+                onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.borderColor = C.black }}
               />
             </div>
 
-            {/* Terms */}
-            <label className="flex items-start gap-2 cursor-pointer">
+            {/* Terms checkbox */}
+            <label style={{ display: 'flex', alignItems: 'start', gap: '0.6rem', cursor: 'pointer', margin: '0.35rem 0' }}>
               <input
                 name="agreed"
                 type="checkbox"
                 checked={form.agreed}
                 onChange={handleChange}
-                className="mt-0.5 accent-primary"
+                style={{
+                  width: 18, height: 18,
+                  accentColor: C.orange,
+                  cursor: 'pointer',
+                  border: '2px solid #0A0A0A',
+                  marginTop: 2,
+                }}
               />
-              <span className="text-[11px] text-white">
+              <span style={{ fontSize: '0.8rem', color: C.black, lineHeight: 1.4 }}>
                 I agree to the{' '}
-                <a href="#" className="text-[#10A37F] hover:underline">Terms of Service</a>
+                <a href="#" style={{ color: C.orange, fontWeight: 700, textDecoration: 'underline' }}>Terms of Service</a>
                 {' '}and{' '}
-                <a href="#" className="text-[#10A37F] hover:underline">Privacy Policy</a>
+                <a href="#" style={{ color: C.orange, fontWeight: 700, textDecoration: 'underline' }}>Privacy Policy</a>
               </span>
             </label>
 
+            {/* Submit */}
             <button
               type="submit"
               disabled={isLoading}
-              className="bg-[#10A37F] w-full py-3 rounded-lg text-black text-sm font-bold tracking-wide disabled:opacity-60 hover:bg-white"
+              style={{
+                width: '100%',
+                background: C.orange,
+                color: '#fff',
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: 800,
+                fontSize: '0.9rem',
+                letterSpacing: '0.16em',
+                textTransform: 'uppercase',
+                border: '3px solid #0A0A0A',
+                padding: '1.2rem 0',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.65 : 1,
+                transition: 'transform 0.1s, box-shadow 0.1s',
+                boxShadow: '6px 6px 0 #0A0A0A',
+                marginTop: '0.5rem',
+                borderRadius: 0,
+              }}
+              onMouseEnter={e => {
+                if (!isLoading) {
+                  e.currentTarget.style.transform = 'translate(-3px,-3px)'
+                  e.currentTarget.style.boxShadow = '9px 9px 0 #0A0A0A'
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translate(0,0)'
+                e.currentTarget.style.boxShadow = '6px 6px 0 #0A0A0A'
+              }}
             >
-              {isLoading ? 'Creating account…' : 'Create account'}
+              {isLoading ? 'Creating Account…' : 'Create Account'}
             </button>
           </form>
 
-          <p className="text-center text-[11px] text-on-surface-variant mt-6">
+          {/* Signin link */}
+          <p style={{
+            textAlign: 'center',
+            fontFamily: C.body,
+            fontSize: '0.85rem',
+            color: C.muted,
+            marginTop: '1.6rem',
+          }}>
             Already have an account?{' '}
-            <Link to="/login" className="text-[#10A37F] hover:underline">Sign in</Link>
+            <Link to="/login" style={{ color: C.orange, fontWeight: 700, textDecoration: 'underline' }}>
+              Sign in
+            </Link>
           </p>
         </div>
       </div>

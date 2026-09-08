@@ -4,6 +4,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        /* CODE PAL design tokens */
+        cream: '#F5F2EB',
+        'cream-dark': '#ECEAE4',
+        'gray-mid': '#D9D6CF',
+        'cp-black': '#0A0A0A',
+        'cp-yellow': '#F5B800',
+        'cp-orange': '#E8440A',
+        'cp-orange-dark': '#C93C09',
+        'cp-muted': '#6B6862',
+        /* Legacy dark tokens (still needed for Review/Dashboard/Profile) */
         surface: '#0e0e0e',
         'surface-container': '#191a1a',
         'surface-container-low': '#131313',
@@ -19,7 +29,6 @@ export default {
         'secondary-dim': '#55e4a9',
         'on-secondary': '#00583b',
         error: '#ff6e84',
-        'error-dim': '#d73357',
         'on-surface': '#ffffff',
         'on-surface-variant': '#adaaaa',
         'outline-variant': '#484848',
@@ -29,6 +38,12 @@ export default {
         headline: ['Space Grotesk', 'sans-serif'],
         body: ['Inter', 'sans-serif'],
         label: ['Inter', 'sans-serif'],
+        display: ['Space Grotesk', 'sans-serif'],
+      },
+      boxShadow: {
+        brutal: '4px 4px 0px #0A0A0A',
+        'brutal-lg': '6px 6px 0px #0A0A0A',
+        'brutal-orange': '4px 4px 0px #E8440A',
       },
     },
   },

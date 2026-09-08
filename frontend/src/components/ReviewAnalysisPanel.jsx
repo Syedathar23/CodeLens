@@ -1,8 +1,22 @@
 import { useState } from 'react'
 
+const C = {
+  cream: '#F5F2EB',
+  black: '#0A0A0A',
+  yellow: '#F5B800',
+  orange: '#E8440A',
+  muted: '#6B6862',
+  border: '3px solid #0A0A0A',
+  thinBorder: '2px solid #0A0A0A',
+  shadow: '6px 6px 0 #0A0A0A',
+  font: "'Space Grotesk', sans-serif",
+  body: "'Inter', sans-serif",
+  grayLight: '#ECEAE4',
+  grayMid: '#D9D6CF',
+}
+
 export default function ReviewAnalysisPanel({ reviewData }) {
-  const [openSections, setOpenSections] = useState({ bug: true, suggestion: false, security: false, error: false })
-  const [leftCollapsed, setLeftCollapsed] = useState(false)
+  const [openSections, setOpenSections] = useState({ bug: true, suggestion: true, security: true, error: true })
 
   const { score = 0, issues = [] } = reviewData || {}
 
@@ -12,11 +26,11 @@ export default function ReviewAnalysisPanel({ reviewData }) {
 
   const getDotColor = (type) => {
     switch (type) {
-      case 'bug':        return '#bb122bff'
-      case 'error':      return '#ff6e84'
-      case 'security':   return '#F97316'
-      case 'suggestion': return '#9dc3feff'
-      default:           return '#aaa4ff'
+      case 'bug':        return '#EF4444' // Red
+      case 'error':      return '#EF4444' // Red
+      case 'security':   return C.orange
+      case 'suggestion': return '#3B82F6' // Blue
+      default:           return C.black
     }
   }
 
@@ -35,9 +49,8 @@ export default function ReviewAnalysisPanel({ reviewData }) {
   const security    = issues.filter(i => i.type?.toLowerCase() === 'security')
   const suggestions = issues.filter(i => !['error', 'bug', 'security'].includes(i.type?.toLowerCase()))
 
-  const scoreLabel = score >= 7 ? 'Good' : score >= 5 ? 'Fair' : 'Poor'
-  const scoreColor = score >= 7 ? '#1D9E75' : score >= 5 ? '#EF9F27' : '#ff6e84'
-  const barColor   = score >= 7 ? '#1D9E75' : score >= 5 ? '#EF9F27' : '#ff6e84'
+  const scoreLabel = score >= 8 ? 'Excellent' : score >= 6 ? 'Good' : score >= 4 ? 'Fair' : 'Needs Work'
+  const scoreColor = score >= 8 ? '#16A34A' : score >= 6 ? C.yellow : score >= 4 ? C.orange : '#EF4444'
 
   const renderSection = (type, items) => {
     if (items.length === 0) return null
@@ -46,41 +59,42 @@ export default function ReviewAnalysisPanel({ reviewData }) {
     const isOpen = openSections[type]
 
     return (
-      <div key={type} style={{ marginBottom: 2 }}>
-        <div
-          style={{
-            display: 'flex', alignItems: 'center',
-            padding: '8px 12px', cursor: 'pointer',
-            borderRadius: 6, marginBottom: 2,
-            background: isOpen ? 'rgba(255,255,255,0.04)' : 'transparent',
-            transition: 'background 0.15s'
-          }}
+      <div key={type} style={{ marginBottom: '1rem' }}>
+        <button
           onClick={() => toggleSection(type)}
+          style={{
+            width: '100%',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '0.5rem 0',
+            background: 'transparent', border: 'none',
+            cursor: 'pointer', fontFamily: C.font,
+            borderBottom: C.thinBorder,
+            marginBottom: isOpen ? '0.5rem' : 0,
+          }}
         >
-          <div style={{
-            width: 8, height: 8, borderRadius: '50%',
-            background: dot, marginRight: 10, flexShrink: 0
-          }} />
-          <span style={{ fontSize: 13, color: '#e0e0e0' }}>
-            {label} ({items.length})
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div style={{ width: 12, height: 12, background: dot, border: '2px solid #0A0A0A' }} />
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', color: C.black }}>
+              {label} ({items.length})
+            </span>
+          </div>
+          <span style={{ color: C.black, fontSize: '0.8rem', fontWeight: 900 }}>
+            {isOpen ? '−' : '+'}
           </span>
-          <span style={{ marginLeft: 'auto', color: '#484848', fontSize: 11 }}>
-            {isOpen ? '▲' : '▼'}
-          </span>
-        </div>
+        </button>
 
         {isOpen && (
-          <div style={{ paddingLeft: 8, marginBottom: 4 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {items.map((item, i) => (
               <div key={i} style={{
-                padding: '8px 10px',
-                borderRadius: 6,
-                background: 'rgba(255,255,255,0.03)',
-                border: `1px solid ${dot}22`,
-                marginBottom: 4,
-                fontSize: 11,
-                color: '#8a8a8a',
-                lineHeight: 1.5 
+                padding: '0.65rem',
+                background: C.grayLight,
+                border: C.thinBorder,
+                fontSize: '0.75rem',
+                color: C.black,
+                fontFamily: C.body,
+                lineHeight: 1.5,
+                boxShadow: '2px 2px 0 #0A0A0A'
               }}>
                 {item.description}
               </div>
@@ -91,135 +105,91 @@ export default function ReviewAnalysisPanel({ reviewData }) {
     )
   }
 
-  if (leftCollapsed) {
-    return (
-      <div style={{
-        width: 32,
-        flexShrink: 0,
-        height: '100%',
-        background: '#131313',
-        borderRight: '1px solid #222',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        fontFamily: 'Inter, sans-serif'
-      }}>
-        <button 
-          onClick={() => setLeftCollapsed(false)}
-          style={{ width: '100%', padding: '14px 0', background: 'transparent', border: 'none', color: '#ffffffff', cursor: 'pointer', borderBottom: '1px solid #222' }}
-        >
-          ❯
-        </button>
-        <div style={{
-          marginTop: 20,
-          writingMode: 'vertical-rl',
-          transform: 'rotate(180deg)',
-          fontSize: 10,
-          fontWeight: 700,
-          color: '#65f3b6',
-          letterSpacing: 2,
-          textTransform: 'uppercase',
-          whiteSpace: 'nowrap'
-        }}>
-          REVIEW ANALYSIS
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div style={{
-      width: 220,
-      flexShrink: 0,
-      height: '100%',
-      background: '#131313',
-      borderRight: '1px solid #222',
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: 'Inter, sans-serif',
-      overflow: 'hidden'
+      fontFamily: C.body,
+      height: '100%',
     }}>
 
       {/* Header */}
       <div style={{
-        padding: '14px 16px 10px',
-        borderBottom: '1px solid #222',
-        flexShrink: 0,
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
+        marginBottom: '1.5rem',
       }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#65f3b6', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 2 }}>
-            Review Analysis
-          </div>
+        <div style={{ 
+          fontSize: '1rem', fontWeight: 900, fontFamily: C.font, 
+          textTransform: 'uppercase', color: C.black, 
+          marginBottom: '0.25rem', letterSpacing: '0.05em' 
+        }}>
+          Analysis
         </div>
-        <button 
-          onClick={() => setLeftCollapsed(true)}
-          style={{ background: 'transparent', border: 'none', color: '#ffffffff', cursor: 'pointer', padding: '0 4px', fontSize: 14 }}
-        >
-          ❮
-        </button>
       </div>
 
       {/* Score Block */}
-      <div style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, marginBottom: 6 }}>
-          <span style={{ fontSize: 44, fontWeight: 800, color: scoreColor, lineHeight: 1 }}>
+      <div style={{ 
+        background: C.cream, 
+        border: C.border, 
+        boxShadow: C.shadow, 
+        padding: '1.25rem', 
+        marginBottom: '2rem' 
+      }}>
+        <div style={{ fontSize: '0.7rem', fontWeight: 800, fontFamily: C.font, textTransform: 'uppercase', marginBottom: '0.5rem', color: C.muted }}>
+          Code Score
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: '0.5rem' }}>
+          <span style={{ fontSize: '3rem', fontWeight: 900, fontFamily: C.font, color: scoreColor, lineHeight: 1 }}>
             {score}
           </span>
-          <div style={{ paddingBottom: 6 }}>
-            <span style={{ fontSize: 14, color: '#ffffffff' }}>/10</span>
-          </div>
-          <div style={{
-            marginLeft: 'auto', paddingBottom: 6,
-            fontSize: 11, fontWeight: 600,
-            color: scoreColor
-          }}>
-            {scoreLabel}
-          </div>
+          <span style={{ fontSize: '1rem', fontWeight: 700, color: C.muted, fontFamily: C.font }}>
+            /10
+          </span>
         </div>
-
-        {/* Progress bar */}
         <div style={{
-          height: 4, background: '#222', borderRadius: 4, overflow: 'hidden', marginBottom: 14
+          display: 'inline-block',
+          padding: '0.25rem 0.5rem',
+          background: C.black,
+          color: '#fff',
+          fontSize: '0.65rem',
+          fontWeight: 800,
+          fontFamily: C.font,
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em'
         }}>
-          <div style={{
-            height: '100%',
-            width: `${score * 10}%`,
-            background: barColor,
-            borderRadius: 4,
-            transition: 'width 0.6s ease'
-          }} />
-        </div>
-
-        {/* METRICS label */}
-        <div style={{
-          fontSize: 9, fontWeight: 700, color: '#484848',
-          letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8
-        }}>
-          Metrics
+          {scoreLabel}
         </div>
       </div>
 
-      {/* Collapsible Sections */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 4px' }} className="left-panel-scroll">
-        {renderSection('bug', bugs)}
-        {renderSection('suggestion', suggestions)}
-        {renderSection('security', security)}
+      {/* Issues Section */}
+      <div style={{ flex: 1 }}>
+        <div style={{
+          fontSize: '0.7rem', fontWeight: 800, fontFamily: C.font,
+          textTransform: 'uppercase', color: C.muted, marginBottom: '1rem',
+          letterSpacing: '0.05em'
+        }}>
+          Identified Issues
+        </div>
+        
         {renderSection('error', errors)}
+        {renderSection('bug', bugs)}
+        {renderSection('security', security)}
+        {renderSection('suggestion', suggestions)}
 
         {issues.length === 0 && (
-          <div style={{ padding: '16px 12px', fontSize: 11, color: '#484848', textAlign: 'center' }}>
+          <div style={{ 
+            padding: '1.5rem', 
+            background: C.grayLight, 
+            border: C.thinBorder, 
+            textAlign: 'center',
+            fontSize: '0.75rem',
+            fontFamily: C.font,
+            fontWeight: 700,
+            textTransform: 'uppercase'
+          }}>
             No issues detected
           </div>
         )}
       </div>
-
-      <style>{`
-        .left-panel-scroll::-webkit-scrollbar { width: 3px; }
-        .left-panel-scroll::-webkit-scrollbar-thumb { background: #333; }
-      `}</style>
     </div>
   )
 }

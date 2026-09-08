@@ -57,7 +57,7 @@ async def call_gemini(code: str, language: str) -> dict:
     """Send a single-version review prompt to Gemini and return parsed JSON."""
     try:
         prompt = build_review_prompt(code, language)
-        response = model.generate_content(
+        response = await model.generate_content_async(
             prompt,
             generation_config=genai.types.GenerationConfig(temperature=0.2)
         )
@@ -80,7 +80,7 @@ async def call_gemini_diff(
     """Send a diff-based review prompt to Gemini and return parsed JSON."""
     try:
         prompt = build_diff_prompt(old_code, new_code, language, prev_issues)
-        response = model.generate_content(
+        response = await model.generate_content_async(
             prompt,
             generation_config=genai.types.GenerationConfig(temperature=0.2)
         )
@@ -100,7 +100,7 @@ async def call_gemini_annotation(selected_text: str, message: str) -> str:
     """Send an annotation prompt to Gemini and return the plain text response."""
     try:
         prompt = build_annotation_prompt(selected_text, message)
-        response = model.generate_content(prompt)
+        response = await model.generate_content_async(prompt)
         return response.text
     except Exception as e:
         raise HTTPException(
@@ -112,12 +112,12 @@ async def call_llama_sidechat(selected_text: str, message: str) -> str:
     if not GROQ_API_KEY:
         raise Exception("GROQ_API_KEY not configured")
     try:
-        client = groq.Groq(api_key=GROQ_API_KEY)
+        client = groq.AsyncGroq(api_key=GROQ_API_KEY)
         system_prompt = "You are CodeLens AI. Help the user understand or improve their code."
         if selected_text:
             system_prompt += f"\n\nContext block:\n```\n{selected_text}\n```"
         
-        completion = client.chat.completions.create(
+        completion = await client.chat.completions.create(
             model="llama3-8b-8192",
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -204,44 +204,4 @@ async def update_skill_profile(
         conn.rollback()
         # Non-fatal — log but don't crash the endpoint
         print(f"update_skill_profile error: {e}")
-async def call_llama_sidechat(selected_text: str, message: str) -> str:
-    from groq import Groq
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
-    
-    groq_key = os.getenv("GROQ_API_KEY")
-    
-    if groq_key:
-        try:
-            client = Groq(api_key=groq_key)
-            response = client.chat.completions.create(
-                model="llama3-8b-8192",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a helpful code assistant. Give clear, concise explanations."
-                    },
-                    {
-                        "role": "user",
-                        "content": f"Context: '{selected_text}'\nQuestion: {message}"
-                    }
-                ],
-                max_tokens=500,
-                temperature=0.3
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            print(f"Groq failed: {e}, falling back to Gemini")
-    
-    # Fallback to Gemini if no Groq key
-    try:
-        import google.generativeai as genai
-        load_dotenv()
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        model = genai.GenerativeModel("gemini-2.0-flash")
-        prompt = f"Context from code: '{selected_text}'\nQuestion: {message}\nAnswer concisely."
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        raise Exception(f"Both Groq and Gemini failed: {e}")
+

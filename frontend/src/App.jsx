@@ -8,6 +8,8 @@ import Profile from './pages/Profile'
 import Contact from './pages/Contact'
 import ErrorBoundary from './components/ErrorBoundary'
 
+import AboutUs from './pages/AboutUs'
+
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('token')
   return token ? children : <Navigate to="/login" replace />
@@ -16,7 +18,7 @@ function ProtectedRoute({ children }) {
 export default function App() {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
@@ -31,6 +33,7 @@ export default function App() {
             <ProtectedRoute><Profile /></ProtectedRoute>
           } />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/about" element={<AboutUs />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

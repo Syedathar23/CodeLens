@@ -163,7 +163,7 @@ async def create_review(req: ReviewRequest):
 
 
 @router.get("/reviews/{user_id}")
-async def get_reviews(user_id: int):
+def get_reviews(user_id: int):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -222,7 +222,7 @@ async def get_reviews(user_id: int):
 
 
 @router.get("/reviews/session/{session_id}")
-async def get_session_reviews(session_id: int):
+def get_session_reviews(session_id: int):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -276,7 +276,7 @@ async def get_session_reviews(session_id: int):
 # ---------------------------------------------------------------------------
 
 @router.post("/sessions", status_code=201)
-async def create_session(data: SessionCreate):
+def create_session(data: SessionCreate):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -315,7 +315,7 @@ assistant. Answer helpfully and concisely.
 If the question involves code, provide clean working examples.
 Question: {body.message}"""
 
-        response = chat_model.generate_content(prompt)
+        response = await chat_model.generate_content_async(prompt)
         return {"response": response.text}
 
     except Exception as e:
@@ -325,7 +325,7 @@ Question: {body.message}"""
 # ---------------------------------------------------------------------------
 
 @router.post("/annotations", status_code=201)
-async def create_annotation(req: AnnotationRequest):
+def create_annotation(req: AnnotationRequest):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -421,7 +421,7 @@ async def add_annotation_message(
             conn.close()
 
 @router.get("/annotations/{review_id}")
-async def get_annotations(review_id: int):
+def get_annotations(review_id: int):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -481,7 +481,7 @@ async def get_annotations(review_id: int):
 # ---------------------------------------------------------------------------
 
 @router.get("/profile/{user_id}")
-async def get_profile(user_id: int):
+def get_profile(user_id: int):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -627,7 +627,7 @@ async def get_profile(user_id: int):
 # ---------------------------------------------------------------------------
 
 @router.get("/dashboard/{user_id}")
-async def get_dashboard(user_id: int):
+def get_dashboard(user_id: int):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -765,7 +765,7 @@ async def get_dashboard(user_id: int):
 # ---------------------------------------------------------------------------
 
 @router.post("/contact", status_code=201)
-async def submit_contact(req: ContactRequest):
+def submit_contact(req: ContactRequest):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -787,7 +787,7 @@ async def submit_contact(req: ContactRequest):
 
 
 @router.post("/suggestions", status_code=201)
-async def create_suggestion(req: SuggestionRequest):
+def create_suggestion(req: SuggestionRequest):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -817,7 +817,7 @@ async def create_suggestion(req: SuggestionRequest):
 
 
 @router.post("/suggestions/{suggestion_id}/vote", status_code=200)
-async def vote_suggestion(suggestion_id: int, user_id: int):
+def vote_suggestion(suggestion_id: int, user_id: int):
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -855,7 +855,7 @@ async def vote_suggestion(suggestion_id: int, user_id: int):
 
 
 @router.get("/suggestions")
-async def get_suggestions():
+def get_suggestions():
     conn = _get_conn()
     try:
         cursor = conn.cursor()
@@ -889,7 +889,7 @@ async def get_suggestions():
 # ---------------------------------------------------------------------------
 
 @router.get("/health")
-async def health_check():
+def health_check():
     try:
         conn = _get_conn()
         conn.close()

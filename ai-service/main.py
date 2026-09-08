@@ -7,7 +7,7 @@ import uvicorn
 # Load environment variables before anything else
 load_dotenv()
 
-from core.database import create_tables
+from core.database import create_tables, close_pool
 from routes.review import router
 
 
@@ -16,7 +16,8 @@ async def lifespan(app: FastAPI):
     # Startup
     create_tables()
     yield
-    # Shutdown — nothing to clean up (connections are per-request)
+    # Shutdown — close all pooled connections
+    close_pool()
 
 
 app = FastAPI(
@@ -26,13 +27,23 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS
+origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:[0-9]+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Routes

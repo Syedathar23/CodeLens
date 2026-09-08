@@ -1,18 +1,33 @@
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect, useRef } from 'react'
 import { getRecentReviews } from '../services/api'
 import { Link } from 'react-router-dom'
+
+const C = {
+  cream: '#F5F2EB',
+  black: '#0A0A0A',
+  yellow: '#F5B800',
+  orange: '#E8440A',
+  muted: '#6B6862',
+  border: '5px solid #0A0A0A',
+  shadow: '3px 3px 0 #0A0A0A',
+  font: "'Space Grotesk', sans-serif",
+  body: "'Inter', sans-serif",
+}
+
 export default function Layout({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
-  
+
   const isChats = location.pathname === '/review' || location.pathname === '/chat'
   const isDashboard = location.pathname === '/dashboard'
   const isProfile = location.pathname === '/profile'
+  const isContact = location.pathname === '/contact'
+  const isReviewPage = location.pathname === '/review'
 
   const userName = localStorage.getItem('userName') || 'Developer'
-  const initials = userName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-  const userId = localStorage.getItem('userId') || 1
+  const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const userId = localStorage.getItem('userId')
 
   const [allSessions, setAllSessions] = useState([])
   const [showChatsDropdown, setShowChatsDropdown] = useState(false)
@@ -23,8 +38,6 @@ export default function Layout({ children }) {
       .then(data => setAllSessions(data || []))
       .catch(err => console.error(err))
   }, [userId])
-
-  const isReviewPage = location.pathname === '/review'
 
   function handleLogout() {
     localStorage.clear()
@@ -41,150 +54,195 @@ export default function Layout({ children }) {
     }
   }
 
+  const navLinkStyle = (active) => ({
+    fontFamily: C.body,
+    fontSize: '1.0rem',
+    fontWeight: 900,
+    color: active ? C.orange : C.black,
+    background: 'none',
+    border: 'none',
+    borderBottom: active ? `2px solid ${C.orange}` : '2px solid transparent',
+    paddingBottom: 2,
+    cursor: 'pointer',
+    outline: 'none',
+    textDecoration: 'none',
+    transition: 'color 0.15s, border-color 0.15s',
+  })
+
   return (
-    <div className="min-h-screen bg-[#0e0e0e] text-white font-body flex flex-col">
-      {/* ── UNIFIED NAVBAR ─────────────────────────────────────────────────── */}
+    <div style={{ minHeight: '100vh', background: C.cream, fontFamily: C.body, display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── NAVBAR ───────────────────────────────────────────────────── */}
       {!isReviewPage && (
-      <div className="h-[65px] bg-[#0e0e0e] px-6 flex flex-row items-center justify-between border-b border-[#222] shrink-0 z-50">
-        
-        {/* Left Side: Logo */}
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="w-8 h-8 bg-[#10A37F] rounded-md flex items-center justify-center">
-            <span className="material-symbols-outlined text-black text-sm">code</span>
-          </div>
-          <Link to="/" className="font-headline font-semibold text-lg hover:opacity-80">
-            CodeLens AI
-          </Link>
-        </div>
-
-        {/* Center Nav Links */}
-        <div className="flex items-center gap-6 absolute left-1/2 transform -translate-x-1/2 mt-1">
-            
-            {/* Chats Dropdown */}
-            <div 
-              className="relative flex items-center h-[65px]"
-              onMouseEnter={() => { if(dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current); setShowChatsDropdown(true); }}
-              onMouseLeave={() => { dropdownTimeoutRef.current = setTimeout(() => setShowChatsDropdown(false), 200); }}
-            >
-              <button 
-                onClick={() => navigate('/review')} 
-                className="text-[14px] font-medium transition-colors cursor-pointer"
-                style={{ 
-                  background: 'none', border: 'none', outline: 'none',
-                  color: isChats ? '#10A37F' : '#adaaaa',
-                  borderBottom: isChats ? '2px solid #10A37F' : '2px solid transparent',
-                  paddingBottom: 2 
-                }}
-              >
-                Chats
-              </button>
-              
-              {showChatsDropdown && (
-                <div className="absolute top-[55px] left-[-100px] w-[280px] bg-[#1C1B1B] border border-[#2a2a2a] rounded-lg z-[100] p-2 max-h-[320px] overflow-y-auto shadow-2xl custom-scroll">
-                  <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-[#2a2a2a]">
-                    <span className="text-[10px] text-[#adaaaa] uppercase tracking-widest font-bold">Recent chats</span>
-                    <button onClick={() => navigate('/review')} className="text-[10px] text-[#10A37F] hover:underline">View all</button>
-                  </div>
-                  {allSessions.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center p-4 text-center">
-                      <span className="text-xs text-[#adaaaa] mb-3">No chats yet</span>
-                      <button onClick={handleNewChat} className="text-[10px] font-bold px-3 py-1.5 rounded uppercase tracking-widest bg-[#10A37F] text-black w-full transition-colors hover:opacity-80">Start reviewing code</button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-1">
-                      {allSessions.map(s => (
-                        <div 
-                          key={s.id}
-                          onClick={() => {
-                            if (s.session_id) {
-                              localStorage.setItem('currentSessionId', s.session_id);
-                              navigate('/review');
-                            }
-                          }}
-                          className="flex flex-col p-2 rounded-md hover:bg-[#2a2a2a] cursor-pointer transition-colors border border-transparent"
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-[8px] uppercase tracking-widest px-1.5 py-0.5 rounded font-bold bg-[#1C1B1B] border border-[#333] text-white">{s.language || 'Code'}</span>
-                              <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded text-black ${s.score >= 8 ? 'bg-[#10A37F]' : s.score >= 5 ? 'bg-[#EF9F27]' : 'bg-[#ff6e84]'}`}>{s.score}/10</span>
-                            </div>
-                            <span className="text-[9px] text-[#8a8a8a]">{new Date(s.created_at).toLocaleDateString()}</span>
-                          </div>
-                          <div className="text-[10px] font-mono-code text-[#adaaaa] truncate mt-0.5">
-                            {s.code ? s.code.split('\n')[0].substring(0, 40) : 'No code'}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            <button 
-              onClick={() => navigate('/dashboard')} 
-              className="text-[14px] font-medium transition-colors cursor-pointer" 
-              style={{ 
-                background: 'none', border: 'none', outline: 'none',
-                color: isDashboard ? '#10A37F' : '#adaaaa',
-                borderBottom: isDashboard ? '2px solid #10A37F' : '2px solid transparent',
-                paddingBottom: 2 
+        <nav style={{
+          background: C.cream,
+          borderBottom: C.border,
+          position: 'sticky', top: 0, zIndex: 100,
+        }}>
+          <div style={{
+            maxWidth: 1280, margin: '0 auto', padding: '0 2rem',
+            height: 64,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            {/* Logo */}
+            <Link
+              to="/"
+              style={{
+                fontFamily: C.font, fontWeight: 900, fontSize: '1.35rem',
+                letterSpacing: '-0.03em', color: C.black, textDecoration: 'none',
               }}
             >
-              Dashboard
-            </button>
+              CODELENS AI
+            </Link>
 
-            <button 
-              onClick={() => navigate('/contact')} 
-              className="text-[14px] font-medium transition-colors cursor-pointer" 
-              style={{ 
-                background: 'none', border: 'none', outline: 'none',
-                color: location.pathname === '/contact' ? '#10A37F' : '#adaaaa',
-                borderBottom: location.pathname === '/contact' ? '2px solid #10A37F' : '2px solid transparent',
-                paddingBottom: 2 
-              }}
-            >
-              Contact Us
-            </button>
-        </div>
+            {/* Center Nav */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
 
-        {/* Right Nav Options */}
-        <div className="flex items-center gap-5">
-            <button
-              onClick={handleNewChat}
-              className="transition-transform hover:scale-105 px-4 py-1.5 bg-[#10A37F] border border-[#10A37F] rounded-full text-black text-xs font-semibold cursor-pointer flex items-center gap-1.5"
-            >
-              + New Chat
-            </button>
-
-            <div className="group relative cursor-pointer">
+              {/* Chats dropdown */}
               <div
-                className="w-[30px] h-[30px] rounded-full bg-[#10A37F] flex items-center justify-center text-[10px] font-semibold text-black"
-                title="View Profile"
+                style={{ position: 'relative', height: 64, display: 'flex', alignItems: 'center', }}
+                onMouseEnter={() => { if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current); setShowChatsDropdown(true) }}
+                onMouseLeave={() => { dropdownTimeoutRef.current = setTimeout(() => setShowChatsDropdown(false), 200) }}
               >
-                {initials}
+                <button
+                  onClick={() => navigate('/review')}
+                  style={navLinkStyle(isChats)}
+                >
+                  Chats
+                </button>
+
+                {showChatsDropdown && (
+                  <div style={{
+                    position: 'absolute', top: 58, left: -120, width: 300,
+                    background: '#fff', border: C.border, boxShadow: C.shadow,
+                    zIndex: 200, padding: '0.75rem',
+                    maxHeight: 320, overflowY: 'auto',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem', paddingBottom: '0.5rem', borderBottom: '1px solid #E5E3DD' }}>
+                      <span style={{ fontFamily: C.font, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: C.muted }}>Recent chats</span>
+                      <button onClick={() => navigate('/review')} style={{ background: 'none', border: 'none', fontFamily: C.body, fontSize: '0.75rem', color: C.orange, cursor: 'pointer' }}>View all</button>
+                    </div>
+                    {allSessions.length === 0 ? (
+                      <div style={{ padding: '1rem', textAlign: 'center' }}>
+                        <p style={{ fontFamily: C.body, fontSize: '0.8rem', color: C.muted, marginBottom: '0.75rem' }}>No chats yet</p>
+                        <button onClick={handleNewChat} style={{
+                          fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem',
+                          letterSpacing: '0.12em', textTransform: 'uppercase',
+                          background: C.black, color: '#fff', border: C.border,
+                          padding: '0.5rem 1rem', cursor: 'pointer', width: '100%',
+                        }}>
+                          Start reviewing code
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        {allSessions.map(s => (
+                          <div
+                            key={s.id}
+                            onClick={() => {
+                              if (s.session_id) {
+                                localStorage.setItem('currentSessionId', s.session_id)
+                                navigate('/review')
+                              }
+                            }}
+                            style={{
+                              padding: '0.6rem', borderRadius: 0, cursor: 'pointer',
+                              border: '1px solid transparent', transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.background = '#F5F2EB'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <span style={{ fontFamily: C.font, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: C.black, background: '#ECEAE4', border: '1px solid #D9D6CF', padding: '0.15rem 0.4rem' }}>
+                                  {s.language || 'Code'}
+                                </span>
+                                <span style={{ fontFamily: C.font, fontSize: '0.65rem', fontWeight: 700, color: '#fff', background: s.score >= 8 ? '#22C55E' : s.score >= 5 ? C.yellow : C.orange, padding: '0.15rem 0.4rem' }}>
+                                  {s.score}/10
+                                </span>
+                              </div>
+                              <span style={{ fontFamily: C.body, fontSize: '0.7rem', color: C.muted }}>{new Date(s.created_at).toLocaleDateString()}</span>
+                            </div>
+                            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.7rem', color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {s.code ? s.code.split('\n')[0].substring(0, 40) : 'No code'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              
-              {/* Profile Dropdown */}
-              <div className="absolute top-[40px] right-0 bg-[#1C1B1B] border border-[#2a2a2a] rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col w-36 z-[100] overflow-hidden">
-                 <button onClick={() => navigate('/profile')} className="px-4 py-2.5 text-xs text-left text-[#adaaaa] hover:bg-[#2a2a2a] hover:text-white transition-colors flex items-center gap-2">
-                   <span className="material-symbols-outlined text-[16px]">person</span> Profile
-                 </button>
-                 <button onClick={() => navigate('/settings')} className="px-4 py-2.5 text-xs text-left text-[#adaaaa] hover:bg-[#2a2a2a] hover:text-white transition-colors flex items-center gap-2">
-                   <span className="material-symbols-outlined text-[16px]">settings</span> Settings
-                 </button>
-                 <div className="h-px bg-[#2a2a2a] w-full" />
-                 <button onClick={handleLogout} className="px-4 py-2.5 text-xs text-left text-[#ff6e84] hover:bg-[#2a2a2a] hover:text-red-400 transition-colors flex items-center gap-2">
-                   <span className="material-symbols-outlined text-[16px]">logout</span> Logout
-                 </button>
+
+              <button onClick={() => navigate('/dashboard')} style={navLinkStyle(isDashboard)}>Dashboard</button>
+              <button onClick={() => navigate('/contact')} style={navLinkStyle(isContact)}>Contact Us</button>
+            </div>
+
+            {/* Right side */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              <button
+                onClick={handleNewChat}
+                style={{
+                  fontFamily: C.font, fontWeight: 700, fontSize: '0.75rem',
+                  letterSpacing: '0.1em', textTransform: 'uppercase',
+                  background: C.black, color: '#fff',
+                  border: C.border, boxShadow: C.shadow,
+                  padding: '0.45rem 1rem', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  transition: 'transform 0.1s, box-shadow 0.1s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = C.orange; e.currentTarget.style.transform = 'translate(-1px,-1px)'; e.currentTarget.style.boxShadow = '5px 5px 0 #0A0A0A' }}
+                onMouseLeave={e => { e.currentTarget.style.background = C.black; e.currentTarget.style.transform = 'translate(0,0)'; e.currentTarget.style.boxShadow = C.shadow }}
+              >
+                + New Chat
+              </button>
+
+              {/* Profile avatar */}
+              <div style={{ position: 'relative' }} className="group">
+                <div
+                  style={{
+                    width: 34, height: 34,
+                    background: C.orange,
+                    border: '5px solid #0A0A0A' ,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: C.font, fontWeight: 700, fontSize: '0.8rem',
+                    color: '#fff', cursor: 'pointer',
+                  }}
+                  title="View Profile"
+                >
+                  {initials}
+                </div>
+
+                {/* Dropdown */}
+                <div style={{
+                  position: 'absolute', top: 40, right: 0,
+                  background: '#fff', border: C.border, boxShadow: C.shadow,
+                  width: 160, zIndex: 200, overflow: 'hidden',
+                }}
+                  className="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all"
+                >
+                  <button onClick={() => navigate('/profile')} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '0.65rem 0.85rem', background: 'none', border: 'none', cursor: 'pointer', fontFamily: C.body, fontSize: '0.82rem', color: C.black, textAlign: 'left', transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#F5F2EB'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: C.muted }}>person</span> Profile
+                  </button>
+                  <div style={{ height: 1, background: '#E5E3DD' }} />
+                  <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '0.65rem 0.85rem', background: 'none', border: 'none', cursor: 'pointer', fontFamily: C.body, fontSize: '0.82rem', color: C.orange, textAlign: 'left', transition: 'background 0.15s' }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#FEF0EB'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: C.orange }}>logout</span> Logout
+                  </button>
+                </div>
               </div>
             </div>
-        </div>
-      </div>
+          </div>
+        </nav>
       )}
 
-      {/* ── MAIN CONTENT ────────────────────────────────────────────────────── */}
-      <main className="flex-1 w-full relative">
+      {/* ── MAIN ─────────────────────────────────────────────────────── */}
+      <main style={{ flex: 1, width: '100%', position: 'relative' }}>
         {children}
       </main>
     </div>

@@ -1,42 +1,154 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 
 export default function Navbar() {
   const navigate = useNavigate()
-  const isLoggedIn = !!localStorage.getItem("token")
+  const location = useLocation()
+  const isLoggedIn = !!localStorage.getItem('token')
+
+  function isActive(path) {
+    return location.pathname === path
+  }
 
   return (
-    <nav className="flex items-center justify-between px-8 py-6 border-b border-outline-variant/20 bg-surface">
-      <div className="flex items-center gap-2">
-        <div className="w-8 h-8  bg-[#10A37F] rounded-md flex items-center justify-center">
-          <span className="material-symbols-outlined text-black text-sm">code</span>
+    <nav
+      style={{
+        background: '#F5F2EB',
+        borderBottom: '6px solid #0A0A0A',
+        position: 'sticky',
+        top: 0,
+        zIndex: 100,
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          padding: '0 2rem',
+          height: 64,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        {/* Logo */}
+        <Link
+          to="/"
+          style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontWeight: 900,
+            fontSize: '1.4rem',
+            letterSpacing: '-0.03em',
+            color: '#0A0A0A',
+            textDecoration: 'none',
+          }}
+        >
+          CODELENS AI
+        </Link>
+
+        {/* Center links */}
+        <div style={{ display: 'flex', gap: '2.5rem', alignItems: 'center' }}>
+          {[
+            { label: 'WHY CODELENS', path: '/' },
+            { label: 'ABOUT US', path: '../about' },
+            { label: 'CONTACT', path: '/contact' },
+            ...(isLoggedIn ? [{ label: 'CHATS', path: '/review' }] : []),
+          ].map(({ label, path }) => (
+            <Link
+              key={label}
+              to={path}
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontSize: '0.875rem',
+                fontWeight: 900,
+                color: isActive(path) ? '#E8440A' : '#0A0A0A',
+                textDecoration: isActive(path) ? 'underline' : 'none',
+                textUnderlineOffset: 3,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => e.target.style.color = '#E8440A'}
+              onMouseLeave={e => e.target.style.color = isActive(path) ? '#E8440A' : '#0A0A0A'}
+            >
+              {label}
+            </Link>
+          ))}
         </div>
-        <Link to="/" className="font-headline font-semibold text-lg hover:opacity-80">
-          CodeLens AI
-        </Link>
-      </div>
 
-      <div className="hidden md:flex gap-8 text-sm font-medium">
-        <a href="/#features" className="text-on-surface-variant hover:text-white transition-colors">Features</a>
-        <a href="/#how" className="text-on-surface-variant hover:text-white transition-colors">How it works</a>
-        <a href="/contact" className="text-on-surface-variant hover:text-white transition-colors">Contact Us</a>
-      </div>
-
-      <div className="flex items-center gap-4">
-        {isLoggedIn ? (
-         <button
-            onClick={() => navigate("/review")}
-            className="px-5 py-2 bg-[#10A37F] border border-[#10A37F] rounded-full text-black text-[13px] font-semibold cursor-pointer"
-          >
-            Go to Chats
-          </button>
-        ) : (
-          <Link to="/signup" className="text-sm font-medium text-on-surface hover:text-[#10A37F] transition-colors display flex">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-            <path d="M20 12C20 7.58 16.42 4 12 4C9.24 4 6.81 5.36 5.36 7.44L7.03 8.56C8.13 6.98 9.97 6 12 6C15.31 6 18 8.69 18 12C18 15.31 15.31 18 12 18C9.97 18 8.13 17.02 7.03 15.44L5.36 16.56C6.81 18.64 9.24 20 12 20C16.42 20 20 16.42 20 12Z"/>
-            <path d="M3 11H14V8L19 12L14 16V13H3V11Z"/>
-          </svg>Login/Signup  
-        </Link>
-        )}
+        {/* Right buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {isLoggedIn ? (
+            <button
+              onClick={() => navigate('/dashboard')}
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 900,
+                fontSize: '0.8rem',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                background: '#E8440A',
+                color: '#fff',
+                border: '2px solid #0A0A0A',
+                boxShadow: '3px 3px 0 #0A0A0A',
+                padding: '0.5rem 1.25rem',
+                cursor: 'pointer',
+                transition: 'transform 0.1s, box-shadow 0.1s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translate(-2px, -2px)'
+                e.currentTarget.style.boxShadow = '5px 5px 0 #0A0A0A'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translate(0,0)'
+                e.currentTarget.style.boxShadow = '3px 3px 0 #0A0A0A'
+              }}
+            >
+              Dashboard
+            </button>
+          ) : (
+            <>
+              <Link
+                to="/login"
+                style={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '0.875rem',
+                  fontWeight: 900,
+                  color: '#0A0A0A',
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={e => e.target.style.color = '#E8440A'}
+                onMouseLeave={e => e.target.style.color = '#0A0A0A'}
+              >
+                Login
+              </Link>
+              <button
+                onClick={() => navigate('/signup')}
+                style={{
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 900,
+                  fontSize: '0.8rem',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  background: '#E8440A',
+                  color: '#fff',
+                  border: '2px solid #0A0A0A',
+                  boxShadow: '3px 3px 0 #0A0A0A',
+                  padding: '0.5rem 1.25rem',
+                  cursor: 'pointer',
+                  transition: 'transform 0.1s, box-shadow 0.1s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = 'translate(-2px, -2px)'
+                  e.currentTarget.style.boxShadow = '5px 5px 0 #0A0A0A'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = 'translate(0,0)'
+                  e.currentTarget.style.boxShadow = '3px 3px 0 #0A0A0A'
+                }}
+              >
+                Get Started
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </nav>
   )

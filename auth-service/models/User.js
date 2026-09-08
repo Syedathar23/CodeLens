@@ -28,10 +28,33 @@ const createUser = async (name, email, passwordHash) => {
 };
 
 const updateUser = async (id, fields) => {
-  const result = await pool.query(
-    `UPDATE users SET updated_at = NOW() WHERE id = $1 RETURNING id`,
-    [id]
-  );
+  const allowedFields = ['name', 'email', 'github_url'];
+  const setClauses = [];
+  const values = [];
+  let index = 1;
+
+  for (const key of Object.keys(fields)) {
+    if (allowedFields.includes(key)) {
+      setClauses.push(`${key} = $${index}`);
+      values.push(fields[key]);
+      index++;
+    }
+  }
+
+  if (setClauses.length === 0) {
+    const result = await pool.query(
+      `UPDATE users SET updated_at = NOW() WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    return result.rows[0] || null;
+  }
+
+  setClauses.push(`updated_at = NOW()`);
+  values.push(id);
+
+  const query = `UPDATE users SET ${setClauses.join(', ')} WHERE id = $${index} RETURNING id`;
+  
+  const result = await pool.query(query, values);
   return result.rows[0] || null;
 };
 

@@ -6,12 +6,12 @@
   "dependencies": {
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
-    "bcryptjs": "*",
-    "cors": "*",
-    "dotenv": "*",
-    "express": "*",
-    "jsonwebtoken": "*",
+    "bcryptjs": "3.0.3",
+    "cors": "2.8.6",
+    "dotenv": "17.3.1",
+    "express": "5.2.1",
+    "jsonwebtoken": "9.0.3",
     "nodemon": "^3.1.14",
-    "pg": "*"
+    "pg": "8.20.0"
   }
 }
