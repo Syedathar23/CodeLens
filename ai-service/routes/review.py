@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 import psycopg2
-import google.generativeai as genai
+from google import genai
 import os
 from dotenv import load_dotenv
 
@@ -37,8 +37,10 @@ def _get_conn():
     return get_connection()
 
 api_key = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
-chat_model = genai.GenerativeModel("gemini-2.5-flash")
+try:
+    client = genai.Client(api_key=api_key) if api_key else genai.Client(api_key="dummy_key_for_startup")
+except Exception:
+    client = None
 
 # ---------------------------------------------------------------------------
 # Reviews
@@ -315,7 +317,10 @@ assistant. Answer helpfully and concisely.
 If the question involves code, provide clean working examples.
 Question: {body.message}"""
 
-        response = await chat_model.generate_content_async(prompt)
+        response = await client.aio.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+        )
         return {"response": response.text}
 
     except Exception as e:

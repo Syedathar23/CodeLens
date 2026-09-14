@@ -1,6 +1,7 @@
 import os
 import json
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from fastapi import HTTPException
 from dotenv import load_dotenv
 import groq
@@ -15,9 +16,10 @@ load_dotenv()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-genai.configure(api_key=GEMINI_API_KEY)
-
-model = genai.GenerativeModel("gemini-2.5-flash")
+try:
+    client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else genai.Client(api_key="dummy_key_for_startup")
+except Exception:
+    client = None
 
 
 def _strip_markdown(text: str) -> str:
@@ -57,9 +59,10 @@ async def call_gemini(code: str, language: str) -> dict:
     """Send a single-version review prompt to Gemini and return parsed JSON."""
     try:
         prompt = build_review_prompt(code, language)
-        response = await model.generate_content_async(
-            prompt,
-            generation_config=genai.types.GenerationConfig(temperature=0.2)
+        response = await client.aio.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.2)
         )
         raw = _strip_markdown(response.text)
         result = json.loads(raw)
@@ -80,9 +83,10 @@ async def call_gemini_diff(
     """Send a diff-based review prompt to Gemini and return parsed JSON."""
     try:
         prompt = build_diff_prompt(old_code, new_code, language, prev_issues)
-        response = await model.generate_content_async(
-            prompt,
-            generation_config=genai.types.GenerationConfig(temperature=0.2)
+        response = await client.aio.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.2)
         )
         raw = _strip_markdown(response.text)
         result = json.loads(raw)
@@ -100,7 +104,10 @@ async def call_gemini_annotation(selected_text: str, message: str) -> str:
     """Send an annotation prompt to Gemini and return the plain text response."""
     try:
         prompt = build_annotation_prompt(selected_text, message)
-        response = await model.generate_content_async(prompt)
+        response = await client.aio.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt
+        )
         return response.text
     except Exception as e:
         raise HTTPException(

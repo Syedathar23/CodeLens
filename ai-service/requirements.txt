@@ -1,8 +1,9 @@
 fastapi
 uvicorn
 python-dotenv
-google-generativeai
+google-genai
 httpx
 psycopg2-binary
 python-jose
 pydantic
+groq
