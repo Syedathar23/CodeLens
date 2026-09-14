@@ -63,7 +63,7 @@ export default function Contact() {
     setIsSubmittingContact(true)
     setContactStatus('')
     try {
-      await axios.post('http://localhost:8000/contact', contactForm)
+      await axios.post('/api/contact', contactForm)
       setContactStatus('Success! Our core team will reach out soon.')
       setContactForm({ name: '', email: '', subject: 'General Feedback', message: '' })
     } catch {
@@ -77,7 +77,9 @@ export default function Contact() {
   async function handleUpvote(id) {
     setSuggestions(prev => prev.map(s => s.id === id ? { ...s, upvotes: s.upvotes + 1 } : s))
     try {
-      await axios.post(`http://localhost:8000/suggestions/${id}/vote`, { user_id: 1 })
+      await axios.post(`/api/suggestions/${id}/vote`, null, {
+      params: { user_id: 1 }
+      })
     } catch (err) {
       console.warn('Vote failed', err)
     }
