@@ -1,9 +1,13 @@
 import os
+from pathlib import Path
 import psycopg2
 from psycopg2.pool import ThreadedConnectionPool
 from dotenv import load_dotenv
 
-load_dotenv()
+env_path = Path(__file__).resolve().parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
+if not os.getenv("DATABASE_URL"):
+    load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent.parent / ".env")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 

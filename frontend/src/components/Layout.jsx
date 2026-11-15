@@ -9,7 +9,8 @@ const C = {
   yellow: '#F5B800',
   orange: '#E8440A',
   muted: '#6B6862',
-  border: '5px solid #0A0A0A',
+  border: '4px solid #0A0A0A',
+  thinBorder: '2px solid #0A0A0A',
   shadow: '3px 3px 0 #0A0A0A',
   font: "'Space Grotesk', sans-serif",
   body: "'Inter', sans-serif",
@@ -31,6 +32,7 @@ export default function Layout({ children }) {
 
   const [allSessions, setAllSessions] = useState([])
   const [showChatsDropdown, setShowChatsDropdown] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const dropdownTimeoutRef = useRef(null)
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function Layout({ children }) {
 
   const navLinkStyle = (active) => ({
     fontFamily: C.body,
-    fontSize: '1.0rem',
+    fontSize: '0.95rem',
     fontWeight: 900,
     color: active ? C.orange : C.black,
     background: 'none',
@@ -80,27 +82,28 @@ export default function Layout({ children }) {
           position: 'sticky', top: 0, zIndex: 100,
         }}>
           <div style={{
-            maxWidth: 1280, margin: '0 auto', padding: '0 2rem',
+            maxWidth: 1280, margin: '0 auto', padding: '0 1.25rem',
             height: 64,
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            gap: '1rem',
           }}>
             {/* Logo */}
             <Link
               to="/"
               style={{
-                fontFamily: C.font, fontWeight: 900, fontSize: '1.35rem',
+                fontFamily: C.font, fontWeight: 900, fontSize: 'clamp(1.15rem, 3vw, 1.35rem)',
                 letterSpacing: '-0.03em', color: C.black, textDecoration: 'none',
+                whiteSpace: 'nowrap',
               }}
             >
               CODELENS AI
             </Link>
 
-            {/* Center Nav */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
-
+            {/* Center Nav - Desktop Only */}
+            <div className="hidden md:flex" style={{ alignItems: 'center', gap: '2rem' }}>
               {/* Chats dropdown */}
               <div
-                style={{ position: 'relative', height: 64, display: 'flex', alignItems: 'center', }}
+                style={{ position: 'relative', height: 64, display: 'flex', alignItems: 'center' }}
                 onMouseEnter={() => { if (dropdownTimeoutRef.current) clearTimeout(dropdownTimeoutRef.current); setShowChatsDropdown(true) }}
                 onMouseLeave={() => { dropdownTimeoutRef.current = setTimeout(() => setShowChatsDropdown(false), 200) }}
               >
@@ -113,8 +116,8 @@ export default function Layout({ children }) {
 
                 {showChatsDropdown && (
                   <div style={{
-                    position: 'absolute', top: 58, left: -120, width: 300,
-                    background: '#fff', border: C.border, boxShadow: C.shadow,
+                    position: 'absolute', top: 58, left: -60, width: 300,
+                    background: '#fff', border: C.thinBorder, boxShadow: C.shadow,
                     zIndex: 200, padding: '0.75rem',
                     maxHeight: 320, overflowY: 'auto',
                   }}>
@@ -128,7 +131,7 @@ export default function Layout({ children }) {
                         <button onClick={handleNewChat} style={{
                           fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem',
                           letterSpacing: '0.12em', textTransform: 'uppercase',
-                          background: C.black, color: '#fff', border: C.border,
+                          background: C.black, color: '#fff', border: C.thinBorder,
                           padding: '0.5rem 1rem', cursor: 'pointer', width: '100%',
                         }}>
                           Start reviewing code
@@ -178,17 +181,18 @@ export default function Layout({ children }) {
               <button onClick={() => navigate('/contact')} style={navLinkStyle(isContact)}>Contact Us</button>
             </div>
 
-            {/* Right side */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            {/* Right side - Desktop & Mobile */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <button
                 onClick={handleNewChat}
+                className="hidden sm:flex"
                 style={{
                   fontFamily: C.font, fontWeight: 700, fontSize: '0.75rem',
                   letterSpacing: '0.1em', textTransform: 'uppercase',
                   background: C.black, color: '#fff',
-                  border: C.border, boxShadow: C.shadow,
-                  padding: '0.45rem 1rem', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 6,
+                  border: C.thinBorder, boxShadow: C.shadow,
+                  padding: '0.45rem 0.9rem', cursor: 'pointer',
+                  alignItems: 'center', gap: 6,
                   transition: 'transform 0.1s, box-shadow 0.1s',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = C.orange; e.currentTarget.style.transform = 'translate(-1px,-1px)'; e.currentTarget.style.boxShadow = '5px 5px 0 #0A0A0A' }}
@@ -200,10 +204,11 @@ export default function Layout({ children }) {
               {/* Profile avatar */}
               <div style={{ position: 'relative' }} className="group">
                 <div
+                  onClick={() => navigate('/profile')}
                   style={{
-                    width: 34, height: 34,
+                    width: 36, height: 36,
                     background: C.orange,
-                    border: '5px solid #0A0A0A' ,
+                    border: '3px solid #0A0A0A',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontFamily: C.font, fontWeight: 700, fontSize: '0.8rem',
                     color: '#fff', cursor: 'pointer',
@@ -213,10 +218,10 @@ export default function Layout({ children }) {
                   {initials}
                 </div>
 
-                {/* Dropdown */}
+                {/* Profile Dropdown */}
                 <div style={{
-                  position: 'absolute', top: 40, right: 0,
-                  background: '#fff', border: C.border, boxShadow: C.shadow,
+                  position: 'absolute', top: 42, right: 0,
+                  background: '#fff', border: C.thinBorder, boxShadow: C.shadow,
                   width: 160, zIndex: 200, overflow: 'hidden',
                 }}
                   className="opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all"
@@ -236,8 +241,100 @@ export default function Layout({ children }) {
                   </button>
                 </div>
               </div>
+
+              {/* Mobile hamburger menu toggle */}
+              <div className="flex md:hidden">
+                <button
+                  onClick={() => setMobileMenuOpen(prev => !prev)}
+                  style={{
+                    background: mobileMenuOpen ? C.black : '#fff',
+                    color: mobileMenuOpen ? '#fff' : C.black,
+                    border: '2px solid #0A0A0A',
+                    boxShadow: '2px 2px 0 #0A0A0A',
+                    padding: '6px 8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  aria-label="Toggle menu"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>
+                    {mobileMenuOpen ? 'close' : 'menu'}
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Mobile Drawer Menu */}
+          {mobileMenuOpen && (
+            <div
+              className="block md:hidden"
+              style={{
+                background: C.cream,
+                borderTop: '2px solid #0A0A0A',
+                borderBottom: C.border,
+                padding: '1.25rem',
+                boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); navigate('/review') }}
+                  style={{ ...navLinkStyle(isChats), textAlign: 'left', fontSize: '1rem', padding: '0.5rem 0', borderBottom: '1px solid #D9D6CF' }}
+                >
+                  Chats
+                </button>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); navigate('/dashboard') }}
+                  style={{ ...navLinkStyle(isDashboard), textAlign: 'left', fontSize: '1rem', padding: '0.5rem 0', borderBottom: '1px solid #D9D6CF' }}
+                >
+                  Dashboard
+                </button>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); navigate('/contact') }}
+                  style={{ ...navLinkStyle(isContact), textAlign: 'left', fontSize: '1rem', padding: '0.5rem 0', borderBottom: '1px solid #D9D6CF' }}
+                >
+                  Contact Us
+                </button>
+                <button
+                  onClick={() => { setMobileMenuOpen(false); navigate('/profile') }}
+                  style={{ ...navLinkStyle(isProfile), textAlign: 'left', fontSize: '1rem', padding: '0.5rem 0', borderBottom: '1px solid #D9D6CF' }}
+                >
+                  Profile
+                </button>
+
+                <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                  <button
+                    onClick={() => { setMobileMenuOpen(false); handleNewChat() }}
+                    style={{
+                      flex: 1,
+                      fontFamily: C.font, fontWeight: 800, fontSize: '0.8rem',
+                      letterSpacing: '0.1em', textTransform: 'uppercase',
+                      background: C.black, color: '#fff',
+                      border: C.thinBorder, boxShadow: C.shadow,
+                      padding: '0.65rem', cursor: 'pointer',
+                    }}
+                  >
+                    + New Chat
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      fontFamily: C.font, fontWeight: 800, fontSize: '0.8rem',
+                      letterSpacing: '0.1em', textTransform: 'uppercase',
+                      background: '#fff', color: C.orange,
+                      border: `2px solid ${C.orange}`, boxShadow: C.shadow,
+                      padding: '0.65rem 1rem', cursor: 'pointer',
+                    }}
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </nav>
       )}
 

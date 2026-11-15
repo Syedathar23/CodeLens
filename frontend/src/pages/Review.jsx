@@ -23,24 +23,18 @@ const C = {
   grayMid: '#D9D6CF',
 }
 
-// ── Left Sidebar ──────────────────────────────────────────────────────────────
-function ChatSidebar({ sessions, activeSessionId, onSelectSession, onNewChat }) {
+// ── Left Sidebar (Desktop + Mobile Drawer) ───────────────────────────────────
+function ChatSidebar({ sessions, activeSessionId, onSelectSession, onNewChat, mobileOpen, onCloseMobile }) {
   const [collapsed, setCollapsed] = useState(false)
 
-  return (
+  const content = (
     <div style={{
-      width: collapsed ? 48 : 260,
-      minWidth: collapsed ? 48 : 260,
+      width: '100%',
+      height: '100%',
       background: '#fff',
-      borderRight: C.border,
       display: 'flex',
       flexDirection: 'column',
-      transition: 'width 0.2s ease, min-width 0.2s ease',
       overflow: 'hidden',
-      position: 'relative',
-      zIndex: 10,
-      height: '100%',
-      flexShrink: 0,
     }}>
       {/* Header row */}
       <div style={{
@@ -57,36 +51,61 @@ function ChatSidebar({ sessions, activeSessionId, onSelectSession, onNewChat }) 
           <span style={{
             fontFamily: C.font,
             fontWeight: 900,
-            fontSize: '0.7rem',
+            fontSize: '0.75rem',
             letterSpacing: '0.12em',
             textTransform: 'uppercase',
             color: C.black,
           }}>Chats</span>
         )}
-        <button
-          onClick={() => setCollapsed(c => !c)}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 4,
-            display: 'flex',
-            alignItems: 'center',
-            color: C.muted,
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>
-            {collapsed ? 'chevron_right' : 'chevron_left'}
-          </span>
-        </button>
+        
+        {/* Mobile close button or Desktop collapse toggle */}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {mobileOpen && (
+            <button
+              onClick={onCloseMobile}
+              className="md:hidden"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                display: 'flex',
+                alignItems: 'center',
+                color: C.black,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '1.25rem' }}>close</span>
+            </button>
+          )}
+
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden md:flex"
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 4,
+              alignItems: 'center',
+              color: C.muted,
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '1.1rem' }}>
+              {collapsed ? 'chevron_right' : 'chevron_left'}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* New Chat Button */}
-      {!collapsed && (
+      {(!collapsed || mobileOpen) && (
         <div style={{ padding: '0.75rem 0.75rem 0.5rem' }}>
           <button
-            onClick={onNewChat}
+            onClick={() => {
+              onNewChat()
+              if (onCloseMobile) onCloseMobile()
+            }}
             style={{
               width: '100%',
               fontFamily: C.font,
@@ -115,8 +134,8 @@ function ChatSidebar({ sessions, activeSessionId, onSelectSession, onNewChat }) 
         </div>
       )}
 
-      {/* Collapsed new chat icon */}
-      {collapsed && (
+      {/* Collapsed new chat icon (Desktop) */}
+      {collapsed && !mobileOpen && (
         <div style={{ padding: '0.5rem 0', display: 'flex', justifyContent: 'center' }}>
           <button
             onClick={onNewChat}
@@ -138,7 +157,7 @@ function ChatSidebar({ sessions, activeSessionId, onSelectSession, onNewChat }) 
       )}
 
       {/* Session List */}
-      {!collapsed && (
+      {(!collapsed || mobileOpen) && (
         <div style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', padding: '0.25rem 0.5rem 1rem' }}>
           {sessions.length === 0 ? (
             <div style={{
@@ -148,60 +167,56 @@ function ChatSidebar({ sessions, activeSessionId, onSelectSession, onNewChat }) 
               fontSize: '0.75rem',
               color: C.muted,
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: '2rem', color: C.grayMid, display: 'block', marginBottom: 6 }}>chat_bubble_outline</span>
-              No previous chats yet.
+              No chat history yet.
             </div>
           ) : (
-            sessions.map((s) => {
-              const isActive = String(s.session_id) === String(activeSessionId)
-              const scoreColor = s.score >= 8 ? '#16A34A' : s.score >= 5 ? '#D97706' : C.orange
-              const scoreBg = s.score >= 8 ? '#DCFCE7' : s.score >= 5 ? '#FEF3C7' : '#FEE2E2'
+            sessions.map((s, idx) => {
+              const isSelected = activeSessionId && (String(s.session_id) === String(activeSessionId) || String(s.id) === String(activeSessionId))
               return (
                 <div
-                  key={s.id}
-                  onClick={() => onSelectSession(s)}
-                  style={{
-                    padding: '0.65rem 0.6rem',
-                    marginBottom: 2,
-                    background: isActive ? C.grayLight : 'transparent',
-                    border: isActive ? C.thinBorder : '2px solid transparent',
-                    borderLeft: isActive ? `4px solid ${C.orange}` : '4px solid transparent',
-                    cursor: 'pointer',
-                    transition: 'background 0.12s, border-color 0.12s',
+                  key={s.id || idx}
+                  onClick={() => {
+                    onSelectSession(s)
+                    if (onCloseMobile) onCloseMobile()
                   }}
-                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#F5F2EB' }}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+                  style={{
+                    padding: '0.6rem 0.65rem',
+                    marginBottom: '0.35rem',
+                    background: isSelected ? C.grayLight : 'transparent',
+                    border: isSelected ? `2px solid ${C.black}` : '1px solid transparent',
+                    cursor: 'pointer',
+                    transition: 'background 0.1s, border-color 0.1s',
+                  }}
+                  onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#FAF8F4' }}
+                  onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}
                 >
-                  {/* Language + score row */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                     <span style={{
                       fontFamily: C.font,
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      letterSpacing: '0.1em',
+                      fontSize: '0.65rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.08em',
                       textTransform: 'uppercase',
-                      background: isActive ? C.black : C.grayLight,
-                      color: isActive ? '#fff' : C.black,
-                      padding: '0.1rem 0.4rem',
-                      border: '1px solid ' + C.grayMid,
+                      color: C.black,
+                      background: '#fff',
+                      border: '1px solid #D9D6CF',
+                      padding: '0.1rem 0.35rem',
                     }}>
                       {s.language || 'Code'}
                     </span>
-                    {s.score != null && (
+                    {s.score !== undefined && (
                       <span style={{
                         fontFamily: C.font,
-                        fontSize: '0.6rem',
-                        fontWeight: 700,
-                        color: scoreColor,
-                        background: scoreBg,
+                        fontSize: '0.65rem',
+                        fontWeight: 800,
+                        color: '#fff',
+                        background: s.score >= 8 ? '#22C55E' : s.score >= 5 ? C.yellow : C.orange,
                         padding: '0.1rem 0.35rem',
-                        border: `1px solid ${scoreColor}40`,
                       }}>
                         {s.score}/10
                       </span>
                     )}
                   </div>
-                  {/* Code preview */}
                   <p style={{
                     margin: 0,
                     fontFamily: "'JetBrains Mono', monospace",
@@ -214,7 +229,6 @@ function ChatSidebar({ sessions, activeSessionId, onSelectSession, onNewChat }) 
                   }}>
                     {s.code ? s.code.split('\n')[0].trim().substring(0, 32) || 'No preview' : 'No preview'}
                   </p>
-                  {/* Date */}
                   <p style={{
                     margin: '3px 0 0',
                     fontFamily: C.body,
@@ -231,36 +245,73 @@ function ChatSidebar({ sessions, activeSessionId, onSelectSession, onNewChat }) 
       )}
     </div>
   )
+
+  return (
+    <>
+      {/* Desktop Persistent Sidebar */}
+      <div
+        className="hidden md:flex"
+        style={{
+          width: collapsed ? 48 : 260,
+          minWidth: collapsed ? 48 : 260,
+          borderRight: C.border,
+          flexDirection: 'column',
+          transition: 'width 0.2s ease, min-width 0.2s ease',
+          overflow: 'hidden',
+          position: 'relative',
+          zIndex: 10,
+          height: '100%',
+          flexShrink: 0,
+        }}
+      >
+        {content}
+      </div>
+
+      {/* Mobile Drawer Overlay */}
+      {mobileOpen && (
+        <div
+          className="fixed inset-0 z-50 flex md:hidden"
+          style={{ background: 'rgba(10,10,10,0.5)' }}
+          onClick={onCloseMobile}
+        >
+          <div
+            style={{
+              width: 280,
+              maxWidth: '80vw',
+              height: '100%',
+              background: '#fff',
+              borderRight: C.border,
+              boxShadow: '4px 0 12px rgba(0,0,0,0.2)',
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {content}
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 export default function Review() {
   const navigate = useNavigate()
   const location = useLocation()
   
-  const isChats = location.pathname === '/review' || location.pathname === '/chat'
-  const isDashboard = location.pathname === '/dashboard'
-  const userName = localStorage.getItem('userName') || 'Developer'
-  const initials = userName.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
-
   const userId = localStorage.getItem('userId')
   const savedSessionId = localStorage.getItem('currentSessionId')
 
   const [sessionId, setSessionId] = useState(savedSessionId)
   const [messages, setMessages] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(true)
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   
   const [allSessions, setAllSessions] = useState([])
-  const [showChatsDropdown, setShowChatsDropdown] = useState(false)
-  const dropdownTimeoutRef = useRef(null)
-
-  useEffect(() => {
-    getRecentReviews(userId)
-      .then(data => setAllSessions(data || []))
-      .catch(err => console.error(err))
-  }, [userId])
   
+  // Editor mode state
   const [editorOpen, setEditorOpen] = useState(false)
   const [editorData, setEditorData] = useState(null)
+  const [editorMobileTab, setEditorMobileTab] = useState('editor') // 'analysis' | 'editor' | 'chat'
+  const [editorDiffView, setEditorDiffView] = useState('both') // 'both' | 'original' | 'improved'
 
   const [inputCode, setInputCode] = useState('')
   const language = 'auto'
@@ -275,6 +326,12 @@ export default function Review() {
 
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
+
+  useEffect(() => {
+    getRecentReviews(userId)
+      .then(data => setAllSessions(data || []))
+      .catch(err => console.error(err))
+  }, [userId])
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -298,15 +355,12 @@ export default function Review() {
     if (e.target.closest('#selection-popup')) return
     const selection = window.getSelection()
     const selectedText = selection.toString().trim()
-    if (selectedText.length < 3) {
-      setPopupPos(null)
-      return
-    }
+    if (!selectedText || selectedText.length < 3) return
     try {
       const range = selection.getRangeAt(0)
       const rect = range.getBoundingClientRect()
       setPopupPos({
-        top: rect.top - 10,
+        top: rect.top - 44,
         left: rect.left + rect.width / 2
       })
       setPopupText(selectedText)
@@ -324,7 +378,6 @@ export default function Review() {
     return name || `${lang} review — ${new Date().toLocaleDateString()}`
   }
 
-  // Load a specific session by session_id
   async function loadSession(sid) {
     setLoadingHistory(true)
     setMessages([])
@@ -418,8 +471,7 @@ export default function Review() {
       localStorage.setItem('lastReviewId', reviewData.id)
       setInputCode('')
       if (textareaRef.current) {
-        textareaRef.current.style.height = '24px'
-        textareaRef.current.style.overflowY = 'hidden'
+        textareaRef.current.style.height = '48px'
       }
       // Refresh sidebar sessions
       getRecentReviews(userId).then(data => setAllSessions(data || [])).catch(() => {})
@@ -444,8 +496,7 @@ export default function Review() {
     setInputCode('')
     setReplyContext(null)
     if (textareaRef.current) {
-      textareaRef.current.style.height = '24px'
-      textareaRef.current.style.overflowY = 'hidden'
+      textareaRef.current.style.height = '48px'
     }
     
     try {
@@ -476,6 +527,7 @@ export default function Review() {
       reviewId: aiMsg.reviewId
     })
     setEditorOpen(true)
+    setEditorMobileTab('editor')
   }
 
   function handleNewChat() {
@@ -500,6 +552,67 @@ export default function Review() {
     <div style={{ background: C.cream, height: '100vh', overflow: 'hidden', fontFamily: C.body, color: C.black, display: 'flex', flexDirection: 'column' }}>
       <Navbar />
 
+      {/* Mobile Workspace Bar */}
+      <div className="flex md:hidden" style={{
+        background: '#fff',
+        borderBottom: C.thinBorder,
+        padding: '0.4rem 0.75rem',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+      }}>
+        <button
+          onClick={() => setMobileSidebarOpen(true)}
+          style={{
+            background: C.grayLight,
+            border: '1px solid #0A0A0A',
+            padding: '0.35rem 0.65rem',
+            fontFamily: C.font,
+            fontWeight: 800,
+            fontSize: '0.72rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            cursor: 'pointer',
+          }}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>history</span>
+          Chats ({allSessions.length})
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={() => setModelUsed(modelUsed === 'gemini' ? 'llama3' : 'gemini')}
+            style={{
+              background: '#fff',
+              border: '1px solid #0A0A0A',
+              padding: '0.35rem 0.5rem',
+              fontFamily: C.font,
+              fontWeight: 800,
+              fontSize: '0.68rem',
+              cursor: 'pointer',
+            }}
+          >
+            ⚡ {modelUsed === 'gemini' ? 'GEMINI' : 'LLAMA'}
+          </button>
+          <button
+            onClick={handleNewChat}
+            style={{
+              background: C.black,
+              color: '#fff',
+              border: '1px solid #0A0A0A',
+              padding: '0.35rem 0.65rem',
+              fontFamily: C.font,
+              fontWeight: 800,
+              fontSize: '0.72rem',
+              cursor: 'pointer',
+            }}
+          >
+            + New
+          </button>
+        </div>
+      </div>
+
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
         {/* ── Left Sidebar ── */}
         <ChatSidebar
@@ -507,178 +620,371 @@ export default function Review() {
           activeSessionId={sessionId}
           onNewChat={handleNewChat}
           onSelectSession={handleSelectSession}
+          mobileOpen={mobileSidebarOpen}
+          onCloseMobile={() => setMobileSidebarOpen(false)}
         />
 
         {/* ── Main Content ── */}
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0 }}>
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minHeight: 0, position: 'relative' }}>
           {editorOpen && editorData ? (
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', background: C.cream, borderTop: C.border }}>
+            /* ── RESPONSIVE EDITOR MODE ── */
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: C.cream, borderTop: C.border }}>
               
-              {/* Panel 1: Review Analysis (Brutalist card layout) */}
-              <div style={{ width: 280, borderRight: C.border, background: '#fff', padding: '1.5rem', overflowY: 'auto' }}>
-                <ReviewAnalysisPanel reviewData={editorData} />
+              {/* Responsive Tab Bar on Mobile & Tablet (< lg) */}
+              <div className="flex lg:hidden" style={{
+                background: C.black,
+                borderBottom: C.border,
+                padding: '0.4rem',
+                gap: 6,
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexShrink: 0,
+              }}>
+                <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
+                  <button
+                    onClick={() => setEditorMobileTab('editor')}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      fontFamily: C.font,
+                      fontWeight: 800,
+                      fontSize: '0.72rem',
+                      background: editorMobileTab === 'editor' ? C.orange : '#333',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Code Diff
+                  </button>
+                  <button
+                    onClick={() => setEditorMobileTab('analysis')}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      fontFamily: C.font,
+                      fontWeight: 800,
+                      fontSize: '0.72rem',
+                      background: editorMobileTab === 'analysis' ? C.yellow : '#333',
+                      color: editorMobileTab === 'analysis' ? C.black : '#fff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Analysis ({editorData.score}/10)
+                  </button>
+                  <button
+                    onClick={() => setEditorMobileTab('chat')}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      fontFamily: C.font,
+                      fontWeight: 800,
+                      fontSize: '0.72rem',
+                      background: editorMobileTab === 'chat' ? '#3B82F6' : '#333',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Side Chat
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setEditorOpen(false)}
+                  style={{
+                    fontFamily: C.font,
+                    fontWeight: 800,
+                    fontSize: '0.7rem',
+                    background: '#EF4444',
+                    color: '#fff',
+                    border: 'none',
+                    padding: '0.35rem 0.65rem',
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                  }}
+                >
+                  ✕ Close
+                </button>
               </div>
-              
-              {/* Panel 2: Code Editors */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}> 
-                   {/* Left Editor */}
-                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', borderRight: C.border, background: '#fff' }}>
-                      <div style={{ padding: '0.75rem 1rem', background: C.yellow, borderBottom: C.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontFamily: C.font, fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase' }}>Original Submission</span>
-                        {editorData.language && <span style={{ background: C.black, color: '#fff', padding: '0.15rem 0.4rem', fontSize: '0.65rem', fontWeight: 700 }}>{editorData.language}</span>}
-                      </div>
-                      <div style={{ flex: 1, overflow: 'auto' }} onMouseUp={handleSelection}>
-                         <CodePanel 
-                           code={editorData.code || ''}
-                           language={editorData.language}
-                           editable={false}
-                           isLatest={false}
-                           issues={editorData.issues || []}
-                         />
-                      </div>
-                   </div>
- 
-                   {/* Right Editor */}
-                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fff' }}>
-                      <div style={{ padding: '0.75rem 1rem', background: C.orange, borderBottom: C.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontFamily: C.font, fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', color: '#fff' }}>Architect Improvements</span>
-                        <button
-                          onClick={() => setEditorOpen(false)}
-                          style={{
-                            fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem',
-                            background: C.black, color: '#fff', border: 'none',
-                            padding: '0.35rem 0.75rem', cursor: 'pointer',
-                          }}
-                        >
-                           Close Editor
-                        </button>
-                      </div>
-                      <div style={{ flex: 1, overflow: 'auto' }} onMouseUp={handleSelection}>
-                         <CodePanel 
-                           code={editorData.improvedCode || editorData.code || ''}
-                           originalCode={editorData.code || ''}
-                           language={editorData.language}
-                           score={editorData.score}
-                           editable={false}
-                           isLatest={true}
-                           issues={editorData.issues || []}
-                         />
-                      </div>
-                   </div>
+
+              {/* Editor Workspace Area */}
+              <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                {/* Panel 1: Review Analysis Panel */}
+                <div
+                  className={`${editorMobileTab === 'analysis' ? 'flex' : 'hidden'} lg:flex`}
+                  style={{
+                    width: '100%',
+                    maxWidth: 320,
+                    borderRight: C.border,
+                    background: '#fff',
+                    padding: '1.25rem',
+                    overflowY: 'auto',
+                    flexShrink: 0,
+                  }}
+                >
+                  <ReviewAnalysisPanel reviewData={editorData} />
                 </div>
                 
-                {/* Embedded Input Bar */}
-                <div style={{ padding: '1rem', background: '#fff', borderTop: C.border }}>
-                  <div style={{ border: C.border, background: '#FAFAF8', padding: '0.5rem 0.75rem', display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <textarea
-                      value={inputCode}
-                      onChange={(e) => setInputCode(e.target.value)}
-                      placeholder="Ask follow-up or describe changes..."
-                      style={{ flex: 1, background: 'transparent', border: 'none', color: C.black, fontSize: 13, outline: 'none', resize: 'none' }}
-                      rows={1}
-                    />
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                {/* Panel 2: Code Comparison Editors */}
+                <div
+                  className={`${editorMobileTab === 'editor' ? 'flex' : 'hidden'} lg:flex`}
+                  style={{ flex: 1, flexDirection: 'column', overflow: 'hidden' }}
+                >
+                  {/* Diff view switch for smaller screens */}
+                  <div className="flex md:hidden" style={{
+                    padding: '0.35rem 0.75rem',
+                    background: '#FAFAF8',
+                    borderBottom: '1px solid #D9D6CF',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <span style={{ fontSize: '0.7rem', fontFamily: C.font, fontWeight: 700, color: C.muted }}>SHOW:</span>
+                    <div style={{ display: 'flex', gap: 4 }}>
                       <button
-                        onClick={handleTextSubmit}
-                        disabled={isSynthesizing || !inputCode.trim()}
-                        style={{ background: '#fff', border: C.border, color: C.black, padding: '0.5rem 1rem', fontFamily: C.font, fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                        onClick={() => setEditorDiffView('original')}
+                        style={{
+                          background: editorDiffView === 'original' ? C.yellow : '#fff',
+                          border: '1px solid #0A0A0A',
+                          padding: '0.2rem 0.5rem',
+                          fontSize: '0.65rem',
+                          fontFamily: C.font,
+                          fontWeight: 700,
+                        }}
                       >
-                        SEND CHAT
+                        Original
                       </button>
                       <button
-                        onClick={handleReviewSubmit}
-                        disabled={isSynthesizing || !inputCode.trim()}
-                        style={{ background: C.orange, border: C.border, color: '#fff', padding: '0.5rem 1rem', fontFamily: C.font, fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                        onClick={() => setEditorDiffView('improved')}
+                        style={{
+                          background: editorDiffView === 'improved' ? C.orange : '#fff',
+                          color: editorDiffView === 'improved' ? '#fff' : C.black,
+                          border: '1px solid #0A0A0A',
+                          padding: '0.2rem 0.5rem',
+                          fontSize: '0.65rem',
+                          fontFamily: C.font,
+                          fontWeight: 700,
+                        }}
                       >
-                        CODE REVIEW
+                        Improved
+                      </button>
+                      <button
+                        onClick={() => setEditorDiffView('both')}
+                        style={{
+                          background: editorDiffView === 'both' ? C.black : '#fff',
+                          color: editorDiffView === 'both' ? '#fff' : C.black,
+                          border: '1px solid #0A0A0A',
+                          padding: '0.2rem 0.5rem',
+                          fontSize: '0.65rem',
+                          fontFamily: C.font,
+                          fontWeight: 700,
+                        }}
+                      >
+                        Both
                       </button>
                     </div>
                   </div>
+
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'row', flexWrap: 'wrap', overflow: 'hidden' }}>
+                      {/* Left Editor: Original Submission */}
+                      {(editorDiffView === 'both' || editorDiffView === 'original') && (
+                        <div style={{
+                          flex: 1,
+                          minWidth: 280,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          borderRight: C.border,
+                          background: '#fff',
+                          overflow: 'hidden',
+                        }}>
+                          <div style={{ padding: '0.5rem 0.75rem', background: C.yellow, borderBottom: C.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontFamily: C.font, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase' }}>Original Submission</span>
+                            {editorData.language && <span style={{ background: C.black, color: '#fff', padding: '0.15rem 0.4rem', fontSize: '0.65rem', fontWeight: 700 }}>{editorData.language}</span>}
+                          </div>
+                          <div style={{ flex: 1, overflow: 'auto' }} onMouseUp={handleSelection}>
+                            <CodePanel 
+                              code={editorData.code || ''}
+                              language={editorData.language}
+                              editable={false}
+                              isLatest={false}
+                              issues={editorData.issues || []}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Right Editor: Architect Improvements */}
+                      {(editorDiffView === 'both' || editorDiffView === 'improved') && (
+                        <div style={{
+                          flex: 1,
+                          minWidth: 280,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          background: '#fff',
+                          overflow: 'hidden',
+                        }}>
+                          <div style={{ padding: '0.5rem 0.75rem', background: C.orange, borderBottom: C.border, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontFamily: C.font, fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#fff' }}>Architect Improvements</span>
+                            <button
+                              onClick={() => setEditorOpen(false)}
+                              className="hidden lg:block"
+                              style={{
+                                fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem',
+                                background: C.black, color: '#fff', border: 'none',
+                                padding: '0.35rem 0.75rem', cursor: 'pointer',
+                              }}
+                            >
+                              Close Editor
+                            </button>
+                          </div>
+                          <div style={{ flex: 1, overflow: 'auto' }} onMouseUp={handleSelection}>
+                            <CodePanel 
+                              code={editorData.improvedCode || editorData.code || ''}
+                              originalCode={editorData.code || ''}
+                              language={editorData.language}
+                              score={editorData.score}
+                              editable={false}
+                              isLatest={true}
+                              issues={editorData.issues || []}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Embedded Input Bar */}
+                    <div style={{ padding: '0.75rem', background: '#fff', borderTop: C.border }}>
+                      <div style={{ border: C.border, background: '#FAFAF8', padding: '0.5rem 0.75rem', display: 'flex', flexDirection: 'column', smDirection: 'row', gap: 8 }}>
+                        <textarea
+                          value={inputCode}
+                          onChange={(e) => setInputCode(e.target.value)}
+                          placeholder="Ask follow-up or describe changes..."
+                          style={{ flex: 1, background: 'transparent', border: 'none', color: C.black, fontSize: 13, outline: 'none', resize: 'none', minHeight: 40 }}
+                          rows={1}
+                        />
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <button
+                            onClick={handleTextSubmit}
+                            disabled={isSynthesizing || !inputCode.trim()}
+                            style={{ background: '#fff', border: C.thinBorder, color: C.black, padding: '0.45rem 0.85rem', fontFamily: C.font, fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                          >
+                            SEND CHAT
+                          </button>
+                          <button
+                            onClick={handleReviewSubmit}
+                            disabled={isSynthesizing || !inputCode.trim()}
+                            style={{ background: C.orange, border: C.thinBorder, color: '#fff', padding: '0.45rem 0.85rem', fontFamily: C.font, fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer' }}
+                          >
+                            CODE REVIEW
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Panel 3: Side Chat */}
+                <div
+                  className={`${editorMobileTab === 'chat' ? 'flex' : 'hidden'} xl:flex`}
+                  style={{
+                    width: '100%',
+                    maxWidth: 340,
+                    height: '100%',
+                    overflow: 'hidden',
+                    flexShrink: 0,
+                  }}
+                >
+                  <SideChat 
+                    isOpen={true}
+                    selectedText={sideChatText}
+                    reviewId={editorData.reviewId}
+                    onClose={() => setEditorOpen(false)}
+                    isEditorMode={true}
+                  />
                 </div>
               </div>
-
-              {/* Panel 3: Side Chat */}
-              <SideChat 
-                isOpen={true}
-                selectedText={sideChatText}
-                reviewId={editorData.reviewId}
-                onClose={() => setEditorOpen(false)}
-                isEditorMode={true}
-              />
             </div>
           ) : (
-            /* CHAT MODE */
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '2rem 1rem', overflowY: 'auto', overscrollBehavior: 'contain' }}>
+            /* ── CHAT MODE ── */
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1.5rem 0.75rem 9rem', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%' }}>
               {messages.length === 0 && !loadingHistory && (
-                <div style={{ maxWidth: 600, textAlign: 'center', marginTop: '6rem' }}>
-                  <div style={{ width: 64, height: 64, background: C.yellow, border: C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem', boxShadow: C.shadow }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 32 }}>psychology</span>
+                <div style={{ maxWidth: 600, width: '100%', textAlign: 'center', marginTop: 'clamp(2rem, 8vh, 6rem)', padding: '0 1rem' }}>
+                  <div style={{ width: 56, height: 56, background: C.yellow, border: C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem', boxShadow: C.shadow }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 28 }}>psychology</span>
                   </div>
-                  <h1 style={{ fontFamily: C.font, fontWeight: 900, fontSize: '2.5rem', marginBottom: '0.5rem' }}>Your AI Code Mentor</h1>
-                  <p style={{ fontFamily: C.body, fontSize: '0.95rem', color: C.muted, lineHeight: 1.6 }}>
+                  <h1 style={{ fontFamily: C.font, fontWeight: 900, fontSize: 'clamp(1.8rem, 5vw, 2.5rem)', marginBottom: '0.5rem', letterSpacing: '-0.02em' }}>
+                    Your AI Code Mentor
+                  </h1>
+                  <p style={{ fontFamily: C.body, fontSize: 'clamp(0.85rem, 2vw, 0.95rem)', color: C.muted, lineHeight: 1.6 }}>
                     Paste a block of code, submit a file, or ask a question. CodeLens AI handles code reviews, security scanning, and inline chat natively.
                   </p>
                 </div>
               )}
 
               {loadingHistory && (
-                 <div style={{ marginTop: '6rem', display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.5 }}>
+                 <div style={{ marginTop: '5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', opacity: 0.5 }}>
                    <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #000', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }} />
                    <span style={{ fontSize: '0.7rem', fontWeight: 700, marginTop: '1rem', letterSpacing: '0.1em' }}>LOADING HISTORY...</span>
                  </div>
               )}
 
-              <div style={{ maxWidth: 760, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.5rem', marginBottom: '8rem' }}>
+              <div style={{ maxWidth: 760, width: '100%', display: 'flex', flexDirection: 'column', gap: '1.25rem', padding: '0 0.5rem' }}>
                 {messages.map((msg, idx) => (
-                  <div key={msg.id || idx} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  <div key={msg.id || idx} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', width: '100%' }}>
                     {msg.role === 'user' ? (
-                       <div style={{ maxWidth: '85%', background: '#fff', border: C.border, boxShadow: C.shadow, padding: '1rem' }}>
+                       <div style={{ maxWidth: '92%', background: '#fff', border: C.border, boxShadow: '3px 3px 0 #0A0A0A', padding: '0.85rem 1rem' }}>
                          {msg.type === 'code' ? (
-                           <pre style={{ margin: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', overflowX: 'auto' }}>
+                           <pre style={{ margin: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', overflowX: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                              {msg.code}
                            </pre>
                          ) : (
-                           <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.5 }}>{msg.content}</p>
+                           <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.5, wordBreak: 'break-word' }}>{msg.content}</p>
                          )}
                        </div>
                     ) : (
-                      <div style={{ maxWidth: '90%', display: 'flex', gap: '1rem' }}>
-                        <div style={{ width: 34, height: 34, background: C.orange, border: C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
-                          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>auto_awesome</span>
+                      <div style={{ maxWidth: '96%', display: 'flex', gap: '0.75rem', width: '100%' }}>
+                        <div style={{ width: 32, height: 32, background: C.orange, border: C.border, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>auto_awesome</span>
                         </div>
-                        <div style={{ flex: 1 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           {msg.type === 'error' && (
                              <div style={{ border: `2px solid ${C.orange}`, background: 'rgba(232,68,10,0.08)', padding: '0.75rem', fontSize: '0.85rem', color: C.orange }}>
                                {msg.content}
                              </div>
                           )}
                           {msg.type === 'text' && (
-                             <div style={{ fontSize: '0.9rem', lineHeight: 1.6, background: '#fff', border: C.border, padding: '1rem' }}>{msg.content}</div>
+                             <div style={{ fontSize: '0.88rem', lineHeight: 1.6, background: '#fff', border: C.border, padding: '0.85rem 1rem', boxShadow: '3px 3px 0 #0A0A0A', wordBreak: 'break-word' }}>
+                               {msg.content}
+                             </div>
                           )}
                           {msg.type === 'review' && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                               <div style={{ background: '#fff', border: C.border, padding: '1.25rem', boxShadow: C.shadow }}>
-                                  <span style={{ fontFamily: C.font, fontWeight: 900, fontSize: '1.1rem', color: C.orange, display: 'block', marginBottom: '0.5rem' }}>
+                               <div style={{ background: '#fff', border: C.border, padding: '1rem', boxShadow: '4px 4px 0 #0A0A0A' }}>
+                                  <span style={{ fontFamily: C.font, fontWeight: 900, fontSize: '1rem', color: C.orange, display: 'block', marginBottom: '0.4rem' }}>
                                     {msg.score}/10 — Reviewed.
                                   </span>
-                                  <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.6 }} onMouseUp={handleSelection}>{msg.content}</p>
+                                  <p style={{ margin: 0, fontSize: '0.88rem', lineHeight: 1.6, wordBreak: 'break-word' }} onMouseUp={handleSelection}>
+                                    {msg.content}
+                                  </p>
                                </div>
                                
                                {msg.improvedCode && (
-                                 <div style={{ background: '#fff', border: C.border, overflow: 'hidden', boxShadow: C.shadow }}>
-                                    <div style={{ background: C.black, color: '#fff', padding: '0.5rem 1rem', fontSize: '0.75rem', fontWeight: 700 }}>
+                                 <div style={{ background: '#fff', border: C.border, overflow: 'hidden', boxShadow: '4px 4px 0 #0A0A0A' }}>
+                                    <div style={{ background: C.black, color: '#fff', padding: '0.4rem 0.75rem', fontSize: '0.72rem', fontWeight: 700 }}>
                                        Improved version ready
                                     </div>
-                                    <pre style={{ margin: 0, padding: '1rem', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem', background: '#FAFAF8', overflowX: 'auto', borderBottom: '1px solid #ECEAE4' }}>
+                                    <pre style={{ margin: 0, padding: '0.75rem', fontFamily: "'JetBrains Mono', monospace", fontSize: '0.72rem', background: '#FAFAF8', overflowX: 'auto', borderBottom: '1px solid #ECEAE4' }}>
                                        {msg.improvedCode.split('\n').slice(0, 4).join('\n')}...
                                     </pre>
-                                    <div style={{ padding: '0.75rem', background: '#fff', display: 'flex', justifyContent: 'flex-end' }}>
+                                    <div style={{ padding: '0.6rem 0.75rem', background: '#fff', display: 'flex', justifyContent: 'flex-end' }}>
                                        <button 
                                          onClick={() => openEditorMode(msg)} 
-                                         style={{ fontFamily: C.font, fontWeight: 700, fontSize: '0.75rem', background: C.orange, border: C.border, color: '#fff', padding: '0.5rem 1rem', cursor: 'pointer' }}
+                                         style={{ fontFamily: C.font, fontWeight: 700, fontSize: '0.72rem', background: C.orange, border: C.thinBorder, color: '#fff', padding: '0.4rem 0.85rem', cursor: 'pointer' }}
                                        >
-                                         Open in editor
+                                         Open in editor ↗
                                        </button>
                                     </div>
                                  </div>
@@ -694,39 +1000,93 @@ export default function Review() {
               </div>
 
               {/* Float Input Bar */}
-              <div style={{ position: 'fixed', bottom: '2rem', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: 760, padding: '0 1rem', zIndex: 10 }}>
-                <div style={{ background: '#fff', border: C.border, boxShadow: '8px 8px 0 #0A0A0A', padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{
+                position: 'fixed',
+                bottom: '1.25rem',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: '100%',
+                maxWidth: 760,
+                padding: '0 0.75rem',
+                zIndex: 30,
+              }}>
+                <div style={{
+                  background: '#fff',
+                  border: C.border,
+                  boxShadow: '5px 5px 0 #0A0A0A',
+                  padding: '0.65rem 0.85rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                }}>
                   <textarea
                     ref={textareaRef}
                     value={inputCode}
                     onChange={(e) => setInputCode(e.target.value)}
-                    placeholder="Paste your code block or message here to review..."
-                    style={{ width: '100%', background: 'transparent', border: 'none', color: C.black, fontSize: 14, outline: 'none', resize: 'none', minHeight: 60 }}
-                    rows={3}
+                    placeholder="Paste code or type a message to review..."
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      color: C.black,
+                      fontSize: 'clamp(12px, 2.5vw, 14px)',
+                      outline: 'none',
+                      resize: 'none',
+                      minHeight: 48,
+                    }}
+                    rows={2}
                   />
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
                       <button
                         onClick={() => setModelUsed(modelUsed === 'gemini' ? 'llama3' : 'gemini')}
-                        style={{ background: '#ECEAE4', border: '1px solid #0A0A0A', padding: '0.35rem 0.65rem', fontSize: '0.7rem', fontFamily: C.font, fontWeight: 700, cursor: 'pointer' }}
+                        style={{
+                          background: '#ECEAE4',
+                          border: '1px solid #0A0A0A',
+                          padding: '0.3rem 0.55rem',
+                          fontSize: '0.68rem',
+                          fontFamily: C.font,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                        }}
                       >
                         ⚡ {modelUsed === 'gemini' ? 'GEMINI' : 'LLAMA'}
                       </button>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                       <button
                         onClick={handleTextSubmit}
                         disabled={isSynthesizing || !inputCode.trim()}
-                        style={{ background: '#fff', border: C.border, color: C.black, padding: '0.6rem 1.25rem', fontFamily: C.font, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', boxShadow: '3px 3px 0 #000' }}
+                        style={{
+                          background: '#fff',
+                          border: C.thinBorder,
+                          color: C.black,
+                          padding: '0.45rem 0.85rem',
+                          fontFamily: C.font,
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          boxShadow: '2px 2px 0 #000',
+                        }}
                       >
-                        SEND CHAT 💬
+                        CHAT 💬
                       </button>
                       <button
                         onClick={handleReviewSubmit}
                         disabled={isSynthesizing || !inputCode.trim()}
-                        style={{ background: C.orange, border: C.border, color: '#fff', padding: '0.6rem 1.25rem', fontFamily: C.font, fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', boxShadow: '3px 3px 0 #000' }}
+                        style={{
+                          background: C.orange,
+                          border: C.thinBorder,
+                          color: '#fff',
+                          padding: '0.45rem 0.85rem',
+                          fontFamily: C.font,
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          cursor: 'pointer',
+                          boxShadow: '2px 2px 0 #000',
+                        }}
                       >
-                        {isSynthesizing ? 'ANALYZING...' : 'CODE REVIEW 🚀'}
+                        {isSynthesizing ? 'ANALYZING...' : 'REVIEW 🚀'}
                       </button>
                     </div>
                   </div>
@@ -739,10 +1099,10 @@ export default function Review() {
 
       <p style={{
          position: 'fixed', bottom: 0, left: '50%', transform: 'translateX(-50%)',
-         fontSize: '9px', fontWeight: 700, letterSpacing: '0.12em', color: C.muted,
-         padding: '4px', zIndex: 5, textAlign: 'center'
+         fontSize: '8px', fontWeight: 700, letterSpacing: '0.1em', color: C.muted,
+         padding: '2px', zIndex: 5, textAlign: 'center', pointerEvents: 'none',
       }}>
-        AI CAN MAKE MISTAKES. VERIFY IMPORTANT INFRASTRUCTURE.
+        AI CAN MAKE MISTAKES. VERIFY IMPORTANT CODE.
       </p>
     </div>
   )

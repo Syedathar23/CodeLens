@@ -94,32 +94,32 @@ export default function Profile() {
 
   return (
     <Layout>
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '3rem 2rem 6rem', fontFamily: C.body }}>
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: 'clamp(1.5rem, 3vw, 2.5rem) 1rem 4rem', fontFamily: C.body }}>
 
         {/* Page Title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
-          <div style={{ width: 8, height: 44, background: C.orange, border: '2px solid #0A0A0A' }} />
-          <h1 style={{ fontFamily: C.font, fontWeight: 900, fontSize: '2.5rem', margin: 0, letterSpacing: '-0.02em' }}>Developer Profile</h1>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+          <div style={{ width: 8, height: 38, background: C.orange, border: '2px solid #0A0A0A' }} />
+          <h1 style={{ fontFamily: C.font, fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 2.5rem)', margin: 0, letterSpacing: '-0.02em' }}>Developer Profile</h1>
         </div>
 
         {/* Profile Hero Card */}
-        <div style={{ background: '#fff', border: C.border, boxShadow: C.shadowLg, padding: '2rem', display: 'flex', alignItems: 'center', gap: '2rem', flexWrap: 'wrap', marginBottom: '2.5rem' }}>
-          <div style={{ width: 80, height: 80, background: C.yellow, border: C.border, boxShadow: C.shadow, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span style={{ fontFamily: C.font, fontWeight: 900, fontSize: '2rem', color: C.black }}>{initials}</span>
+        <div style={{ background: '#fff', border: C.border, boxShadow: C.shadowLg, padding: 'clamp(1.25rem, 3vw, 2rem)', display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '2rem' }}>
+          <div style={{ width: 72, height: 72, background: C.yellow, border: C.border, boxShadow: C.shadow, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <span style={{ fontFamily: C.font, fontWeight: 900, fontSize: '1.8rem', color: C.black }}>{initials}</span>
           </div>
           <div style={{ flex: 1, minWidth: 200 }}>
-            <h2 style={{ fontFamily: C.font, fontWeight: 900, fontSize: '1.6rem', margin: '0 0 0.25rem', color: C.black }}>{userName}</h2>
-            <p style={{ margin: '0 0 0.75rem', fontSize: '0.85rem', color: C.muted }}>{userEmail}</p>
+            <h2 style={{ fontFamily: C.font, fontWeight: 900, fontSize: '1.4rem', margin: '0 0 0.25rem', color: C.black }}>{userName}</h2>
+            <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: C.muted }}>{userEmail}</p>
             {profileData?.memberSince && (
               <span style={{ display: 'inline-block', background: C.grayLight, border: C.thinBorder, padding: '0.2rem 0.6rem', fontSize: '0.6rem', fontWeight: 800, fontFamily: C.font, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                 Member since {profileData.memberSince}
               </span>
             )}
           </div>
-          <div style={{ background: C.black, color: '#fff', border: C.border, boxShadow: C.shadow, padding: '1.25rem 2rem', textAlign: 'center', flexShrink: 0 }}>
+          <div style={{ background: C.black, color: '#fff', border: C.border, boxShadow: C.shadow, padding: '1rem 1.5rem', textAlign: 'center', flexShrink: 0, width: '100%', maxWidth: 240 }}>
             <div style={{ fontSize: '0.6rem', fontWeight: 800, fontFamily: C.font, textTransform: 'uppercase', letterSpacing: '0.15em', color: C.grayMid, marginBottom: '0.3rem' }}>Mastery Level</div>
-            <div style={{ fontFamily: C.font, fontWeight: 900, fontSize: '1.4rem', color: C.yellow }}>{(profileData?.skillLevel || 'Beginner').toUpperCase()}</div>
-            <div style={{ marginTop: '0.75rem' }}>
+            <div style={{ fontFamily: C.font, fontWeight: 900, fontSize: '1.3rem', color: C.yellow }}>{(profileData?.skillLevel || 'Beginner').toUpperCase()}</div>
+            <div style={{ marginTop: '0.5rem' }}>
               <div style={{ height: 6, background: '#333', border: '1px solid #555', overflow: 'hidden', marginBottom: '0.35rem' }}>
                 <div style={{ height: '100%', width: `${xpPct}%`, background: C.yellow, transition: 'width 0.8s ease' }} />
               </div>
@@ -128,7 +128,7 @@ export default function Profile() {
           </div>
           <button
             onClick={() => { localStorage.clear(); navigate('/login') }}
-            style={{ background: 'transparent', border: C.thinBorder, color: C.orange, padding: '0.6rem 1.25rem', fontFamily: C.font, fontWeight: 800, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', alignSelf: 'flex-start' }}
+            style={{ background: 'transparent', border: C.thinBorder, color: C.orange, padding: '0.5rem 1rem', fontFamily: C.font, fontWeight: 800, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.1em', cursor: 'pointer', alignSelf: 'flex-start' }}
             onMouseEnter={e => { e.currentTarget.style.background = C.orange; e.currentTarget.style.color = '#fff' }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = C.orange }}
           >
@@ -137,7 +137,7 @@ export default function Profile() {
         </div>
 
         {/* Stat Cards */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
           <StatCard label="Total Reviews"  value={profileData?.totalReviews ?? 0}        icon="code"       />
           <StatCard label="Avg Code Score" value={profileData?.avgScore ?? '0'}           icon="star"       accent={C.yellow} />
           <StatCard label="Bugs Caught"    value={profileData?.bugsCaught ?? 0}           icon="bug_report" accent="#EF4444" />
@@ -145,7 +145,7 @@ export default function Profile() {
         </div>
 
         {/* Main two-col grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '2rem' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
 
           {/* Left col */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

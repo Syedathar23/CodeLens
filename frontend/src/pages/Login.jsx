@@ -85,22 +85,22 @@ export default function Login() {
       }} />
 
       {/* ── Floating decoration squares (Larger, thicker borders) ──────────────── */}
-      <div style={{
+      <div className="hidden sm:block" style={{
         position: 'absolute', top: '10%', left: '8%',
-        width: 150, height: 150,         /* much larger */
+        width: 150, height: 150,
         background: C.orange, border: '2px solid #0A0A0A',
         transform: 'rotate(-9deg)', zIndex: 1,
       }} />
-      <div style={{
+      <div className="hidden sm:block" style={{
         position: 'absolute', bottom: '10%', right: '9%',
-        width: 170, height: 170,         /* much larger */
+        width: 170, height: 170,
         background: C.yellow, border: '2px solid #0A0A0A',
         transform: 'rotate(11deg)', zIndex: 1,
       }} />
-      {/* White circle — larger, moved closer to the login card box */}
-      <div style={{
-        position: 'absolute', top: '44%', right: '23%',  /* closer to the card */
-        width: 108, height: 108,           /* much larger */
+      {/* White circle */}
+      <div className="hidden sm:block" style={{
+        position: 'absolute', top: '44%', right: '23%',
+        width: 108, height: 108,
         borderRadius: '50%',
         background: '#fff', border: '4px solid #0A0A0A', zIndex: 1,
       }} />

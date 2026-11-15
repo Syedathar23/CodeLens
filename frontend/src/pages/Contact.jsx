@@ -128,29 +128,29 @@ export default function Contact() {
       <Navbar />
 
       {/* ── HERO BANNER ──────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '3rem 2rem 2.5rem' }}>
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-8 py-6 sm:py-10">
         <div style={{
           background: C.yellow,
           border: C.border,
           boxShadow: C.shadow,
-          padding: '2.5rem 3rem',
+          padding: 'clamp(1.5rem, 4vw, 3rem)',
         }}>
           <h1 style={{
             fontFamily: C.font,
             fontWeight: 900,
-            fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+            fontSize: 'clamp(2rem, 5vw, 3.8rem)',
             letterSpacing: '-0.04em',
             textTransform: 'uppercase',
             color: C.black,
             lineHeight: 1.05,
           }}>
-            Shape the Future<br />of Code Pal
+            Shape the Future<br />of CodeLens AI
           </h1>
         </div>
       </section>
 
       {/* ── SUBTITLE ─────────────────────────────────────────────────── */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 2rem 3rem' }}>
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-8 pb-8 sm:pb-12">
         <div style={{
           maxWidth: 560,
           border: C.border,
@@ -164,10 +164,7 @@ export default function Contact() {
       </section>
 
       {/* ── MAIN GRID ─────────────────────────────────────────────────── */}
-      <section style={{
-        maxWidth: 1200, margin: '0 auto', padding: '0 2rem 5rem',
-        display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '3rem', alignItems: 'start',
-      }}>
+      <section className="max-w-[1200px] mx-auto px-4 sm:px-8 pb-12 sm:pb-20 grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
 
         {/* LEFT – CONTACT FORM */}
         <div>

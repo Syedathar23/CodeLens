@@ -150,19 +150,19 @@ export default function Signup() {
       }} />
 
       {/* ── Floating decoration shapes (matching login scale) ───────── */}
-      <div style={{
+      <div className="hidden sm:block" style={{
         position: 'absolute', top: '10%', left: '8%',
         width: 150, height: 150,
         background: C.orange, border: '4px solid #0A0A0A',
         transform: 'rotate(-9deg)', zIndex: 1,
       }} />
-      <div style={{
+      <div className="hidden sm:block" style={{
         position: 'absolute', bottom: '10%', right: '9%',
         width: 170, height: 170,
         background: C.yellow, border: '4px solid #0A0A0A',
         transform: 'rotate(11deg)', zIndex: 1,
       }} />
-      <div style={{
+      <div className="hidden sm:block" style={{
         position: 'absolute', top: '44%', right: '23%',
         width: 108, height: 108,
         borderRadius: '50%',
@@ -252,7 +252,7 @@ export default function Signup() {
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
             {/* Name row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label style={{ display: 'block', fontFamily: C.font, fontWeight: 700, fontSize: '0.7rem', letterSpacing: '0.14em', textTransform: 'uppercase', color: C.black, marginBottom: '0.45rem' }}>
                   First Name

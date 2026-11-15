@@ -24,7 +24,7 @@ function StatCard({ label, value, icon, accent }) {
         background: '#fff',
         border: C.border,
         boxShadow: C.shadow,
-        padding: '1.5rem',
+        padding: '1.25rem',
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem',
@@ -37,7 +37,7 @@ function StatCard({ label, value, icon, accent }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <span style={{
           fontFamily: "'Inter', sans-serif",
-          fontSize: '0.62rem',
+          fontSize: '0.65rem',
           fontWeight: 700,
           letterSpacing: '0.14em',
           textTransform: 'uppercase',
@@ -48,7 +48,7 @@ function StatCard({ label, value, icon, accent }) {
       <p style={{
         fontFamily: "'Space Grotesk', sans-serif",
         fontWeight: 900,
-        fontSize: '2.5rem',
+        fontSize: 'clamp(1.8rem, 3.5vw, 2.5rem)',
         lineHeight: 1,
         color: accent || C.black,
         margin: 0,
@@ -94,16 +94,11 @@ export default function Dashboard() {
   if (loading) {
     return (
       <Layout>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2.5rem 2rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2rem 1rem' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} style={{ height: 120, background: C.grayLight, border: C.border, boxShadow: C.shadow }} />
+              <div key={i} style={{ height: 110, background: C.grayLight, border: C.border, boxShadow: C.shadow }} />
             ))}
-          </div>
-          <div style={{ height: 280, background: C.grayLight, border: C.border, boxShadow: C.shadow, marginBottom: '2rem' }} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <div style={{ height: 160, background: C.grayLight, border: C.border, boxShadow: C.shadow }} />
-            <div style={{ height: 160, background: C.grayLight, border: C.border, boxShadow: C.shadow }} />
           </div>
         </div>
       </Layout>
@@ -112,21 +107,27 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '2.5rem 2rem' }}>
-
-        {/* ── Header ── */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '2.5rem' }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', padding: 'clamp(1.5rem, 3vw, 2.5rem) 1rem' }}>
+        
+        {/* ── Top Header Bar ── */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 900,
-              fontSize: '2rem',
-              letterSpacing: '-0.03em',
+              fontSize: 'clamp(1.6rem, 4vw, 2.2rem)',
+              letterSpacing: '-0.02em',
               color: C.black,
+              margin: '0 0 0.25rem 0',
+            }}>
+              Welcome back, {userName}
+            </h1>
+            <p style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: '0.875rem',
+              color: C.muted,
               margin: 0,
-              marginBottom: '0.25rem',
-            }}>Welcome back, {userName}</h1>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '0.875rem', color: C.muted, margin: 0 }}>
+            }}>
               Your development metrics for today.
             </p>
           </div>
@@ -142,7 +143,7 @@ export default function Dashboard() {
             <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: C.black }}>local_fire_department</span>
             <span style={{
               fontFamily: "'Space Grotesk', sans-serif",
-              fontWeight: 700,
+              fontWeight: 800,
               fontSize: '0.75rem',
               letterSpacing: '0.1em',
               textTransform: 'uppercase',
@@ -166,7 +167,7 @@ export default function Dashboard() {
         )}
 
         {/* ── 4 Stat Cards ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '1rem', marginBottom: '2rem' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard label="Reviews Today"  value={stats?.reviewsToday ?? 0}         icon="code"        />
           <StatCard label="Avg Score"      value={stats?.avgScore ?? '0'}            icon="star"        />
           <StatCard label="Score Growth"   value={stats?.monthlyGrowth ?? '+0'}      icon="trending_up" accent="#22C55E" />
@@ -183,14 +184,14 @@ export default function Dashboard() {
         }}>
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            padding: '1.1rem 1.5rem',
+            padding: '1rem 1.25rem',
             borderBottom: C.border,
             background: C.grayLight,
           }}>
             <h2 style={{
               fontFamily: "'Space Grotesk', sans-serif",
               fontWeight: 900,
-              fontSize: '1rem',
+              fontSize: '0.95rem',
               letterSpacing: '-0.01em',
               color: C.black,
               margin: 0,
@@ -199,8 +200,8 @@ export default function Dashboard() {
               onClick={() => navigate('/review')}
               style={{
                 fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700,
-                fontSize: '0.7rem',
+                fontWeight: 800,
+                fontSize: '0.72rem',
                 letterSpacing: '0.1em',
                 textTransform: 'uppercase',
                 background: 'none',
@@ -215,59 +216,68 @@ export default function Dashboard() {
           </div>
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.82rem', minWidth: 500 }}>
               <thead>
                 <tr style={{ background: C.cream }}>
-                  {['Language', 'Score', 'Model', 'Issues', 'Date'].map(h => (
-                    <th key={h} style={{
-                      padding: '0.65rem 1.25rem',
-                      fontFamily: "'Inter', sans-serif",
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      letterSpacing: '0.14em',
-                      textTransform: 'uppercase',
-                      color: C.muted,
-                      borderBottom: '1px solid ' + C.grayMid,
-                    }}>{h}</th>
-                  ))}
+                  <th style={{ padding: '0.75rem 1.25rem', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: C.muted, borderBottom: C.border }}>
+                    Language
+                  </th>
+                  <th style={{ padding: '0.75rem 1.25rem', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: C.muted, borderBottom: C.border }}>
+                    Score
+                  </th>
+                  <th style={{ padding: '0.75rem 1.25rem', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: C.muted, borderBottom: C.border }}>
+                    Issues
+                  </th>
+                  <th style={{ padding: '0.75rem 1.25rem', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: '0.68rem', letterSpacing: '0.12em', textTransform: 'uppercase', color: C.muted, borderBottom: C.border }}>
+                    Date
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {recentReviews.map((review) => (
+                {recentReviews.map((review, i) => (
                   <tr
-                    key={review.id}
-                    style={{ borderBottom: '1px solid ' + C.grayLight, cursor: 'pointer', transition: 'background 0.12s' }}
-                    onMouseEnter={e => e.currentTarget.style.background = C.cream}
+                    key={review.id || i}
+                    onClick={() => {
+                      if (review.session_id) {
+                        localStorage.setItem('currentSessionId', review.session_id)
+                        navigate('/review')
+                      }
+                    }}
+                    style={{
+                      borderBottom: '1px solid ' + C.grayMid,
+                      cursor: 'pointer',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = '#FAF8F4'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td style={{ padding: '0.8rem 1.25rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          background: C.orange, display: 'inline-block', flexShrink: 0,
-                        }} />
-                        <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, color: C.black }}>
-                          {review.language}
-                        </span>
-                      </div>
+                    <td style={{ padding: '0.75rem 1.25rem' }}>
+                      <span style={{
+                        display: 'inline-block',
+                        background: C.grayLight,
+                        border: '1px solid ' + C.grayMid,
+                        padding: '0.2rem 0.5rem',
+                        fontFamily: "'Space Grotesk', sans-serif",
+                        fontWeight: 800,
+                        fontSize: '0.68rem',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                        color: C.black,
+                      }}>
+                        {review.language || 'Code'}
+                      </span>
                     </td>
-                    <td style={{ padding: '0.8rem 1.25rem' }}>
+                    <td style={{ padding: '0.75rem 1.25rem' }}>
                       <span style={{
                         fontFamily: "'Space Grotesk', sans-serif",
                         fontWeight: 900,
-                        fontSize: '0.85rem',
-                        color: review.score >= 8 ? '#16A34A' : review.score >= 5 ? '#D97706' : C.orange,
-                        background: review.score >= 8 ? '#DCFCE7' : review.score >= 5 ? '#FEF3C7' : '#FEE2E2',
-                        padding: '0.15rem 0.55rem',
-                        border: `1px solid ${review.score >= 8 ? '#86EFAC' : review.score >= 5 ? '#FDE68A' : '#FECACA'}`,
+                        fontSize: '0.9rem',
+                        color: review.score >= 8 ? '#16A34A' : review.score >= 6 ? C.yellow : C.orange,
                       }}>
-                        {review.score}/10
+                        {review.score !== undefined ? `${review.score}/10` : 'N/A'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.8rem 1.25rem', color: C.muted, fontFamily: "'Inter', sans-serif" }}>
-                      {review.model_used}
-                    </td>
-                    <td style={{ padding: '0.8rem 1.25rem' }}>
+                    <td style={{ padding: '0.75rem 1.25rem' }}>
                       <span style={{
                         fontFamily: "'JetBrains Mono', monospace",
                         fontSize: '0.78rem',
@@ -277,7 +287,7 @@ export default function Dashboard() {
                         {review.issues_count || 0} {(review.issues_count || 0) > 0 ? '●' : '✓'}
                       </span>
                     </td>
-                    <td style={{ padding: '0.8rem 1.25rem', color: C.muted, fontFamily: "'Inter', sans-serif" }}>
+                    <td style={{ padding: '0.75rem 1.25rem', color: C.muted, fontFamily: "'Inter', sans-serif" }}>
                       {new Date(review.created_at).toLocaleDateString()}
                     </td>
                   </tr>
@@ -287,7 +297,7 @@ export default function Dashboard() {
 
             {recentReviews.length === 0 && (
               <div style={{
-                padding: '3rem',
+                padding: '2.5rem',
                 textAlign: 'center',
                 fontFamily: "'Inter', sans-serif",
                 fontSize: '0.875rem',
@@ -301,11 +311,11 @@ export default function Dashboard() {
         </div>
 
         {/* ── Bottom Cards Row ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
           {/* Language Skill Progress */}
-          <div style={{ background: '#fff', border: C.border, boxShadow: C.shadow, padding: '1.5rem' }}>
-            <div style={{ borderBottom: C.border, paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>
+          <div style={{ background: '#fff', border: C.border, boxShadow: C.shadow, padding: '1.25rem' }}>
+            <div style={{ borderBottom: C.border, paddingBottom: '0.75rem', marginBottom: '1rem' }}>
               <h3 style={{
                 fontFamily: "'Space Grotesk', sans-serif",
                 fontWeight: 900,
@@ -358,78 +368,61 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Continue where you left off */}
+          {/* Quick Action Card */}
           <div style={{
-            background: '#fff',
+            background: C.yellow,
             border: C.border,
             boxShadow: C.shadow,
-            padding: '1.5rem',
+            padding: '1.25rem',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
+            gap: '1rem',
           }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
-                <div style={{
-                  width: 28, height: 28,
-                  background: C.yellow,
-                  border: C.border,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: '1rem', color: C.black }}>
-                    {recentReviews.length > 0 ? 'history' : 'play_arrow'}
-                  </span>
-                </div>
-                <h3 style={{
-                  fontFamily: "'Space Grotesk', sans-serif",
-                  fontWeight: 900,
-                  fontSize: '0.95rem',
-                  color: C.black,
-                  margin: 0,
-                }}>Continue where you left off</h3>
+              <div style={{ display: 'inline-block', background: C.black, color: '#fff', padding: '0.2rem 0.5rem', fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: '0.75rem' }}>
+                Fast Review
               </div>
-
-              <p style={{
-                fontFamily: "'Inter', sans-serif",
-                fontSize: '0.82rem',
-                color: C.muted,
-                margin: '0 0 1rem 0',
-                lineHeight: 1.5,
+              <h3 style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 900,
+                fontSize: '1.25rem',
+                color: C.black,
+                margin: '0 0 0.5rem 0',
+                letterSpacing: '-0.02em',
               }}>
-                {recentReviews.length > 0
-                  ? `Last reviewed ${recentReviews[0].language} code — ${new Date(recentReviews[0].created_at).toLocaleDateString()}`
-                  : 'Start your first code review to track your progress here.'}
+                Ready to review new code?
+              </h3>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '0.85rem', color: C.black, margin: 0, lineHeight: 1.6 }}>
+                Submit any function, snippet, or entire file for instant linting, security audits, and architectural improvements.
               </p>
-
-              {recentReviews.length > 0 && (
-                <div style={{
-                  background: C.cream,
-                  border: C.border,
-                  padding: '0.65rem 0.85rem',
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '0.72rem',
-                  color: C.muted,
-                  marginBottom: '1rem',
-                }}>
-                  Score: {recentReviews[0].score}/10 · {recentReviews[0].issues_count || 0} issues found
-                </div>
-              )}
             </div>
 
             <button
               onClick={() => navigate('/review')}
-              className="btn-primary"
-              style={{ width: '100%', justifyContent: 'center', padding: '0.75rem' }}
+              style={{
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                background: C.black,
+                color: '#fff',
+                border: C.border,
+                boxShadow: '3px 3px 0 #0A0A0A',
+                padding: '0.75rem 1.25rem',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '1rem' }}>
-                {recentReviews.length > 0 ? 'arrow_forward' : 'rocket_launch'}
-              </span>
-              {recentReviews.length > 0 ? 'CONTINUE REVIEWING' : 'START REVIEWING'}
+              Start New Review →
             </button>
           </div>
-
         </div>
+
       </div>
     </Layout>
   )
