@@ -44,9 +44,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://postgres.epzgsmxobywmbjdxncou:oifAfiWJZ37qGlzt@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres
+      - DATABASE_URL=${DATABASE_URL}
       # NOTE: Replace with your actual Gemini API key or set it in a .env file next to docker-compose.yml
-      - GEMINI_API_KEY=AIzaSyCEo5BUnAD0z8E0sDarsIseyWCm0XAPuMA
+      - GEMINI_API_KEY=${GEMINIAPI_KEY}
     # depends_on:
     #   db:
     #     condition: service_healthy
